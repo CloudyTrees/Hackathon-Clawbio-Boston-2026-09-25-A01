@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "source_policy": "Project-local vendored Agent Skills pinned to immutable upstream commits.",
+  "skills": [
+    {
+      "name": "celltype-specificity-profiler",
+      "version": "0.1.0",
+      "source_repository": "https://github.com/ClawBio/ClawBio",
+      "source_commit": "b360efaf46fd76c603b81b08f756c2e8ac6eb85d",
+      "source_path": "skills/celltype-specificity-profiler",
+      "local_path": ".agents/skills/celltype-specificity-profiler",
+      "license": "MIT",
+      "vendored_at": "2026-09-25",
+      "sha256": {
+        "SKILL.md": "1e01a55c89a67ecfbd6fed8a950a525e318f8a29b9225faf52765fe14e0ef419",
+        "profiler.py": "1464e3af20d7839e557fb1b1097a73b198f392ad7728b5792a2e1cca27ee04ac"
+      }
+    }
+  ]
+}

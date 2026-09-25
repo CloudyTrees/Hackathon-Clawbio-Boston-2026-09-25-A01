@@ -210,6 +210,9 @@ tempCodeRunnerFile.py
 results/*
 !results/README.md
 
+# Public Scanpy fixture cached by the vendored skill's demo tests
+data/pbmc3k_processed.h5ad
+
 # PyPI configuration file
 .pypirc
 

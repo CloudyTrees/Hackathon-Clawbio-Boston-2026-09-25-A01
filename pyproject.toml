@@ -1,0 +1,23 @@
+[project]
+name = "fusion-partner-context"
+version = "0.1.0"
+description = "Reproducible T1 single-cell RNA and T0 spatial-proteomics context reporting for rearrangement partners."
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "anndata>=0.10",
+    "matplotlib>=3.8",
+    "numpy>=1.23",
+    "pandas>=2.0",
+    "scanpy>=1.10",
+    "scipy>=1.9",
+    "shapely>=2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", ".agents/skills/celltype-specificity-profiler/tests"]

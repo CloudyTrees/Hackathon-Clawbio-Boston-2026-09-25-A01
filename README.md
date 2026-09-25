@@ -13,3 +13,14 @@ This repository is preparing a reproducible tool that reports existing rearrange
 - `results/` is reserved for generated reports, tables, plots, and preflight artifacts.
 
 Large inputs and generated results are not source-controlled. Their source URLs, sizes, and SHA-256 checksums are recorded in [`data/manifests/resolved-manifest.json`](data/manifests/resolved-manifest.json).
+
+## Local setup
+
+The project uses Python 3.11 and [uv](https://docs.astral.sh/uv/) for a reproducible environment:
+
+```bash
+uv sync
+uv run pytest
+```
+
+The required ClawBio skill is vendored locally at [`.agents/skills/celltype-specificity-profiler/`](.agents/skills/celltype-specificity-profiler/). Its immutable upstream source and file checksums are recorded in [`.agents/skills.lock.json`](.agents/skills.lock.json). The profiler is intentionally limited to cell-type expression summaries; the project plan remains authoritative for clustering, differential expression, spatial-protein analysis, and reporting.
