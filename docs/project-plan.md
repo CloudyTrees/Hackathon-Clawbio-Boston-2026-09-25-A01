@@ -3,7 +3,7 @@
 Date: 2026-09-25  
 Status: implementation plan; analysis has not been executed.  
 Team: 2–3 people. Primary deliverable: a reusable agent-callable tool.  
-Companion input specification: [fusion-context-data-manifest.json](fusion-context-data-manifest.json).
+Companion input specification: [input-manifest.json](../data/manifests/input-manifest.json).
 
 ## Objective and scope
 
@@ -97,8 +97,8 @@ Implement one adapter per chosen source format, not a general data platform. Sug
 Proposed commands to implement (these do not exist yet):
 
 ~~~bash
-python -m fusion_context inspect --manifest docs/fusion-context-data-manifest.json --out results/preflight
-python -m fusion_context run --manifest results/preflight/resolved-manifest.json --config config/project.json --out results/demo
+python -m fusion_context inspect --manifest data/manifests/input-manifest.json --out results/preflight
+python -m fusion_context run --manifest data/manifests/resolved-manifest.json --config config/project.json --out results/demo
 ~~~
 
 The resolved manifest must include actual local paths, source URLs, byte sizes, SHA-256 checksums, selected RNA route, actual schema mappings, layer semantics and filtering rules. Validate required roles before analysis. Unresolved inputs must produce a non-success status for a full run.

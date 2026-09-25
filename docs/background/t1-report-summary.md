@@ -62,7 +62,7 @@ ORANGE reports QC PASS, no germline driver variants, and no detected alterations
 
 ## Works Cited
 
-ChatGPT. 2026. “T0: Existing Molecular-Report Summary.” September 25. Project working document. [t0-existing-reports-summary.md](t0-existing-reports-summary.md).
+ChatGPT. 2026. “T0: Existing Molecular-Report Summary.” September 25. Project working document. [t0-report-summary.md](t0-report-summary.md).
 
 Osteosarc (Sid Sijbrandij's Osteosarcoma Data). n.d.-a. “DRAGEN Somatic Analysis.” Accessed September 25, 2026. https://osteosarc.com/dragen/.
 
@@ -77,4 +77,3 @@ Osteosarc. n.d.-e. “Osteosarcoma Xenium — Analysis & Interpretation.” Acce
 Osteosarc. n.d.-f. “PARD3B :: CDKN2B-AS1/CDKN2B — Fusion Evidence.” Accessed September 25, 2026. https://osteosarc.com/fusions/pard3b--cdkn2b-as1-cdkn2b/.
 
 Osteosarc. n.d.-g. “Tumor Somatic Variants at Single-Cell Resolution.” Accessed September 25, 2026. https://osteosarc.com/scrnaseq/tumor_variants/.
-

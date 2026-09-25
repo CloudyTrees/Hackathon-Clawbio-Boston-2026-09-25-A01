@@ -1,0 +1,39 @@
+{
+  "candidate_id": "pard3b--cdkn2b-as1-cdkn2b",
+  "original_label": "PARD3B–CDKN2B-AS1/CDKN2B",
+  "source_url": "https://osteosarc.com/fusions/pard3b--cdkn2b-as1-cdkn2b/",
+  "source_snapshot": "references/web-snapshots/pard3b-cdkn2b-fusion-evidence.html",
+  "access_date": "2026-09-25",
+  "scope": "Relevant T0 and T1 patient tumor and matched-blood rows; the T1-derived organoid and later timepoints are excluded.",
+  "interpretation_notes": [
+    "DNA split-read counts from reprocessed alignments are separate observations of the same libraries and must not be pooled as independent molecules.",
+    "The displayed matched blood has no split-read support.",
+    "T1 long-read RNA supplies junction support; listed short-read RNA rows do not.",
+    "Zero split reads in the 10x alignment is structural because that alignment is single-end and lacks SA split-read tags; it is not evidence of biological absence."
+  ],
+  "evidence": [
+    {"timepoint":"T0","assay":"DNA WGS tumor","sample_or_library_id":"T0 Personalis Tumor DRAGEN","reported_support":{"split_reads":16,"discordant_pairs":2}},
+    {"timepoint":"T0","assay":"DNA WGS tumor","sample_or_library_id":"T0 Personalis Tumor oncoanalyser","reported_support":{"split_reads":19,"discordant_pairs":2}},
+    {"timepoint":"T0","assay":"DNA WGS tumor","sample_or_library_id":"T0 Personalis Tumor WGS 2022-12","reported_support":{"split_reads":19,"discordant_pairs":2}},
+    {"timepoint":"T1","assay":"DNA WGS tumor","sample_or_library_id":"T1 UCLA Tumor DRAGEN","reported_support":{"split_reads":10,"discordant_pairs":6}},
+    {"timepoint":"T1","assay":"DNA WGS tumor","sample_or_library_id":"T1 UCLA Tumor oncoanalyser","reported_support":{"split_reads":13,"discordant_pairs":6}},
+    {"timepoint":"T1","assay":"DNA WGS tumor","sample_or_library_id":"T1 UCLA Tumor WGS 2024-06","reported_support":{"split_reads":14,"discordant_pairs":6}},
+    {"timepoint":"T0","assay":"DNA WGS matched blood","sample_or_library_id":"T0 Personalis Blood DRAGEN","reported_support":{"split_reads":0,"discordant_pairs":null}},
+    {"timepoint":"T0","assay":"DNA WGS matched blood","sample_or_library_id":"T0 Personalis Blood oncoanalyser","reported_support":{"split_reads":0,"discordant_pairs":null}},
+    {"timepoint":"T0","assay":"DNA WGS matched blood","sample_or_library_id":"T0 Personalis Blood WGS 2022-12","reported_support":{"split_reads":0,"discordant_pairs":null}},
+    {"timepoint":"T1","assay":"DNA WGS matched blood","sample_or_library_id":"T1 UCLA Blood DRAGEN","reported_support":{"split_reads":0,"discordant_pairs":null}},
+    {"timepoint":"T1","assay":"DNA WGS matched blood","sample_or_library_id":"T1 UCLA Blood WGS 2024-06","reported_support":{"split_reads":0,"discordant_pairs":null}},
+    {"timepoint":"T0","assay":"DNA WES tumor","sample_or_library_id":"T0 BostonGene Tumor WES 2022-12","reported_support":{"split_reads":0,"discordant_pairs":null}},
+    {"timepoint":"T1","assay":"DNA WES tumor","sample_or_library_id":"T1 BostonGene Tumor WES 2024-06","reported_support":{"split_reads":0,"discordant_pairs":null}},
+    {"timepoint":"T0","assay":"DNA WES matched blood","sample_or_library_id":"T0 BostonGene Blood WES 2022-12","reported_support":{"split_reads":0,"discordant_pairs":null}},
+    {"timepoint":"T1","assay":"DNA WES matched blood","sample_or_library_id":"T1 BostonGene Blood WES 2024-06","reported_support":{"split_reads":0,"discordant_pairs":null}},
+    {"timepoint":"T0","assay":"RNA short read","sample_or_library_id":"T0 BostonGene Tumor RNA 2022-12 (BG003082 reprocessed)","reported_support":{"split_reads":0,"discordant_pairs":null}},
+    {"timepoint":"T0","assay":"RNA short read","sample_or_library_id":"T0 Personalis Tumor RNA oncoanalyser","reported_support":{"split_reads":0,"discordant_pairs":null}},
+    {"timepoint":"T1","assay":"RNA short read","sample_or_library_id":"T1 BostonGene Tumor RNA 2024-06 (BG009368 reprocessed)","reported_support":{"split_reads":0,"discordant_pairs":null}},
+    {"timepoint":"T1","assay":"RNA short read","sample_or_library_id":"T1 Tempus Tumor RNA 2024-06 (TL-24-KCVBE1UI1P reprocessed)","reported_support":{"split_reads":0,"discordant_pairs":null}},
+    {"timepoint":"T1","assay":"RNA short read","sample_or_library_id":"T1 UCLA Tumor RNA oncoanalyser","reported_support":{"split_reads":0,"discordant_pairs":null}},
+    {"timepoint":"T1","assay":"RNA long read ONT scRNA","sample_or_library_id":"T1 UCSF Tumor ONT 2024-06","reported_support":{"split_reads":20,"discordant_pairs":0}},
+    {"timepoint":"T1","assay":"RNA long read PacBio","sample_or_library_id":"T1 UCSF Tumor PacBio 2024-06","reported_support":{"split_reads":5,"discordant_pairs":0}},
+    {"timepoint":"T1","assay":"scRNA 10x alignment","sample_or_library_id":"T1 UCSF Tumor scRNA 2024-06 (Kamil CellRanger)","reported_support":{"split_reads":0,"discordant_pairs":null,"structural_zero":true}}
+  ]
+}

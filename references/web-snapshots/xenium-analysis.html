@@ -1,0 +1,2265 @@
+<!doctype html>
+<html lang="en">
+<!--
+  Osteosarcoma Xenium browser — PART 2: analysis & interpretation (reveal.js).
+
+  Companion to app/public/intro/ (Part 1, the feature tour). Served at:
+      https://osteosarc.com/xenium/analysis/   (prod)
+      http://localhost:5173/analysis/index.html (dev — bare /analysis/ hits the SPA fallback)
+
+  NUMBERS: every figure quoted in the text is derived by
+      scripts/analysis-deck/aggregate.py  ->  scripts/analysis-deck/out/metrics.json
+  (the single source of truth). Re-run that script if the data changes, then
+  update the values here. CITATIONS: scripts/analysis-deck/citations.md (all
+  web-verified); inline [n] map to the References slide.
+
+  FIGURES:
+   - Spatial views are screenshots / screen-capture clips in img/ (<img>/<video>).
+   - Trend + panel charts are inline d3, drawn from data literals inlined near the
+     bottom of this file (sourced from metrics.json — re-sync those if the data changes).
+
+  NAV: -> / space advance · <- back · o overview · s notes · f fullscreen
+-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Osteosarcoma Xenium — Analysis &amp; Interpretation</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+
+  <style>
+    :root {
+      --bg:#161616; --panel:#1e1e1e; --line:#333; --fg:#d2d2d2; --fg-dim:#9a9a9a; --white:#fff;
+      --green:#5cc46a; --amber:#e0b03b; --purple:#c08cf0; --teal:#4fb6c4;
+      --blue:#7aa2ff; --orange:#e0883b; --red:#e64a3c; --blue2:#4682dc;
+    }
+    .reveal { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+              font-size:30px; color:var(--fg); }
+    .reveal-viewport { background:var(--bg); }
+    .reveal h1,.reveal h2,.reveal h3 { color:var(--white); font-weight:700; text-transform:none; letter-spacing:-0.01em; }
+    .reveal h1 { font-size:1.85em; line-height:1.06; }
+    .reveal h2 { font-size:1.42em; line-height:1.12; margin-bottom:0.45em; }
+    .reveal h3 { font-size:0.98em; }
+    .reveal p,.reveal li { line-height:1.45; }
+    .reveal strong,.reveal b { color:var(--white); }
+    .reveal a { color:var(--blue); }
+    .reveal section { text-align:left; }
+    .reveal .slide-number { background:transparent; color:#666; font-size:14px; }
+
+    .eyebrow { font-size:0.5em; letter-spacing:0.16em; text-transform:uppercase; color:var(--fg-dim); font-weight:700; margin:0 0 0.4em; }
+    .lede { font-size:0.95em; color:var(--fg); }
+    .sub { color:var(--fg-dim); font-size:0.8em; }
+    .reveal ul,.reveal ol { margin-left:1.1em; }
+    .reveal li { margin:0.3em 0; }
+    .reveal li::marker { color:var(--fg-dim); }
+    .tight li { margin:0.15em 0; font-size:0.92em; }
+
+    .cols { display:grid; grid-template-columns:1fr 1fr; gap:34px; align-items:center; }
+    .cols.text-wide { grid-template-columns:1.12fr 0.88fr; }
+    .cols .v { min-width:0; }
+
+    /* screenshot placeholder frame (spatial views — user captures later) */
+    .shot { margin:0; border:2px dashed #404040; border-radius:12px;
+      background:repeating-linear-gradient(45deg,#191919,#191919 14px,#1c1c1c 14px,#1c1c1c 28px);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      text-align:center; padding:20px; min-height:330px; gap:9px; }
+    .shot.tall { min-height:440px; }
+    .shot .cam { font-size:2em; opacity:0.5; line-height:1; }
+    .shot.chart .cam::after { content:"📊"; }
+    .shot .cam::after { content:"📷"; }
+    .shot .what { color:#cccccc; font-weight:600; font-size:0.6em; max-width:92%; }
+    .shot .cap { color:#8a8a8a; font-size:0.46em; max-width:94%; line-height:1.4; }
+    .shot .cap b { color:#b6b6b6; }
+    .shot.chart { border-color:#3a4a6a; background:repeating-linear-gradient(45deg,#181a22,#181a22 14px,#1b1e28 14px,#1b1e28 28px); }
+    .shot img { width:100%; height:100%; object-fit:contain; border-radius:10px; }
+
+    /* real media frame (screenshots + looping video demos) */
+    .media { margin:0; border:1px solid #3a3a3a; border-radius:12px; overflow:hidden; background:#0d0d0d; }
+    .media video,.media img { display:block; width:100%; height:auto; max-height:500px; object-fit:contain; background:#0d0d0d; }
+    .mcap { color:#8a8a8a; font-size:0.5em; margin-top:0.55em; text-align:center; line-height:1.4; }
+    .mcap .live { color:var(--green); font-weight:700; letter-spacing:0.03em; }
+
+    /* small-multiples strip (per-timepoint spatial panels side by side) */
+    .smx { display:flex; gap:9px; justify-content:center; align-items:flex-start; }
+    .smx figure { margin:0; flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; }
+    .smx .lab { font-size:0.46em; color:#d2d2d2; font-weight:600; letter-spacing:0.03em; margin-bottom:5px; white-space:nowrap; }
+    .smx .lab b { color:var(--orange); }
+    .smx .box { width:100%; height:330px; display:flex; align-items:center; justify-content:center;
+                background:#0d0d0d; border:1px solid #2a2a2a; border-radius:8px; overflow:hidden; }
+    .smx .box img { max-width:100%; max-height:100%; object-fit:contain; display:block; }
+
+    /* ---- inline d3 trend charts ---- */
+    .chartbox { border:1px solid #333; border-radius:12px; background:#121212; padding:10px 12px; }
+    .chartbox svg { width:100%; height:auto; display:block; }
+    .chartbox .axis text { fill:#9a9a9a; font-size:11px; }
+    .chartbox .axis path, .chartbox .axis line { stroke:#3a3a3a; }
+    .chartbox .ylab { fill:#9a9a9a; font-size:11px; }
+    .chartbox .ctitle { fill:#cfcfcf; font-size:12px; font-weight:600; }
+    .chartbox .lgd { fill:#cfcfcf; font-size:11px; }
+    /* in-chart scale toggle */
+    .vtoggle { display:flex; gap:6px; justify-content:flex-end; margin:0 2px 4px; }
+    .vtoggle button { font-family:inherit; font-size:11px; line-height:1; padding:3px 11px; border-radius:999px;
+      border:1px solid var(--line); background:rgba(255,255,255,0.04); color:var(--fg-dim); cursor:pointer; }
+    .vtoggle button:hover { color:var(--fg); border-color:#555; }
+    .vtoggle button.on { background:var(--blue); border-color:var(--blue); color:#0b0b0b; font-weight:700; }
+
+    /* data table */
+    .dtable { width:100%; border-collapse:collapse; font-size:0.62em; margin-top:0.3em; }
+    .dtable th,.dtable td { text-align:left; padding:5px 10px; border-bottom:1px solid #2a2a2a; }
+    .dtable th { color:var(--fg-dim); font-weight:600; text-transform:uppercase; letter-spacing:0.04em; font-size:0.85em; }
+    .dtable td { color:#d6d6d6; font-variant-numeric:tabular-nums; }
+    .dtable td.n { text-align:right; }
+    .dtable tr.sum td { border-top:1px solid #444; color:#fff; font-weight:700; }
+
+    /* accent stat block + callout + caveat (match Part 1) */
+    .stat { border-left:3px solid var(--blue); padding:4px 0 4px 16px; margin:12px 0; }
+    .stat .q { font-style:italic; font-weight:500; }
+    .stat .body { color:#c4c4c4; font-size:0.78em; margin-top:0.3em; }
+    .a-green{border-color:var(--green)} .a-green .q{color:var(--green)}
+    .a-amber{border-color:var(--amber)} .a-amber .q{color:var(--amber)}
+    .a-purple{border-color:var(--purple)} .a-purple .q{color:var(--purple)}
+    .a-teal{border-color:var(--teal)} .a-teal .q{color:var(--teal)}
+    .a-red{border-color:var(--red)} .a-red .q{color:var(--red)}
+    .callout { border-left:3px solid var(--blue); background:rgba(120,160,255,0.08);
+      padding:12px 16px; border-radius:0 6px 6px 0; margin:12px 0; font-size:0.76em; color:#cdd6e6; }
+    .caveat { border-left:3px solid var(--amber); background:rgba(224,176,59,0.08);
+      padding:10px 15px; border-radius:0 6px 6px 0; margin:12px 0; font-size:0.72em; color:#e8dcc0; }
+
+    .divider .num { font-size:6.5em; font-weight:800; line-height:0.9; color:#2c2c2c; margin-bottom:0.08em; }
+    .divider h2 { font-size:1.8em; }
+    .divider .road { color:var(--fg-dim); font-size:0.78em; margin-top:0.5em; }
+
+    .tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:0.4em; }
+    .tag { display:inline-block; font-size:0.58em; padding:4px 10px; border-radius:999px;
+      border:1px solid var(--line); color:var(--fg); background:rgba(255,255,255,0.03); }
+
+    .c-green{color:var(--green)} .c-amber{color:var(--amber)} .c-purple{color:var(--purple)}
+    .c-teal{color:var(--teal)} .c-blue{color:var(--blue)} .c-orange{color:var(--orange)}
+    .c-red{color:var(--red)} .c-blue2{color:var(--blue2)} .c-white{color:var(--white)}
+    .key { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:0.8em;
+      background:rgba(255,255,255,0.07); border:1px solid var(--line); border-radius:4px; padding:1px 7px; color:#cfe; }
+
+    sup.cite { color:var(--blue); font-size:0.6em; font-weight:700; padding-left:1px; }
+    .refs { font-size:0.6em; line-height:1.5; color:#c2c2c2; }
+    .refs li { margin:0.5em 0; }
+    .refs a { word-break:break-word; }
+
+    .brand { position:fixed; bottom:14px; left:18px; font-size:12px; color:#555; z-index:30; }
+    .navhint { position:fixed; bottom:14px; right:90px; font-size:12px; color:#555; z-index:30; }
+  </style>
+</head>
+
+<body>
+  <div class="brand">Osteosarcoma Xenium · Part 2</div>
+  <div class="navhint">→ / space · <span class="key">o</span> overview</div>
+
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ===================== TITLE ===================== -->
+      <section data-background-color="#121212">
+        <p class="eyebrow">Part 2 · Analysis &amp; interpretation</p>
+        <h1>Reading the osteosarcoma<br>immune microenvironment</h1>
+        <p class="lede" style="margin-top:0.7em; max-width:25em;">
+          A longitudinal, <strong>single-patient</strong> spatial case study — what the cell types,
+          markers, gene programs, neighbourhood enrichment, niches and tumour-distance analyses tell
+          us about the evolving tumour–immune landscape across four timepoints.
+        </p>
+        <p class="sub" style="margin-top:1.2em;">
+          <a href="../intro/">← Part 1: the browser tour</a> &nbsp;·&nbsp;
+          <span class="key">→</span> advance · <span class="key">o</span> overview
+        </p>
+          <aside class="notes"><strong>Part 2 — interpreting the data; Part 1 was the tool.</strong><ul><li>n = 1 patient → observations, not statistics.</li><li>Every number is derived by aggregate.py; every citation web-verified.</li></ul></aside>
+        </section>
+
+      <!-- ===================== ACT 1 ===================== -->
+      <section>
+        <section class="divider" data-background-color="#121212">
+          <div class="num">1</div><h2>The data &amp; its design</h2>
+          <p class="road">One patient, four timepoints · scope · an immune-centric panel</p>
+          <aside class="notes">Act 1 — the patient, the scope, and a deliberately immune-heavy panel.</aside>
+        </section>
+
+        <!-- 1.1 patient & timeline -->
+        <section>
+          <p class="eyebrow">One patient, over time</p>
+          <h2>A longitudinal case</h2>
+          <div class="cols text-wide">
+            <div>
+              <p>All six Xenium samples come from <strong>a single osteosarcoma patient</strong>, sampled at
+                four clinical timepoints:</p>
+              <table class="dtable">
+                <tr><th>Time</th><th>Date</th><th>Procedure</th><th>Samples</th></tr>
+                <tr><td>T0</td><td>2022-12-16</td><td>spine resection</td><td>B3, C3 <span class="sub">(2 specimens)</span></td></tr>
+                <tr><td>T1</td><td>2024-06-06</td><td>Th4 biopsy</td><td>1</td></tr>
+                <tr><td>T2</td><td>2025-01-28</td><td>Th4–Th5 biopsy</td><td>1</td></tr>
+                <tr><td>T3</td><td>2025-04-17</td><td>Th4–Th5 excision</td><td>2 <span class="sub">(same tissue, 2 views)</span></td></tr>
+              </table>
+            </div>
+            <div>
+              <div class="caveat"><strong>n = 1 patient.</strong> This is a deep case study, not a cohort.
+                T0 has two <em>distinct</em> specimens (a useful within-timepoint check); the two T3 views
+                image one piece of tissue.</div>
+            </div>
+          </div>
+          <aside class="notes"><strong>One patient, sampled over 2.5 years.</strong><ul><li>6 Xenium samples · 4 timepoints (Dec 2022 → Apr 2025).</li><li>T0 = two distinct specimens (within-timepoint check); T3 = two views of one tissue.</li><li>A deep case study, not a cohort.</li></ul></aside>
+        </section>
+
+        <!-- 1.2 scope -->
+        <section>
+          <p class="eyebrow">Size &amp; scope</p>
+          <h2>1.38 M segmented cells · <span class="c-green">70%</span> pass QC</h2>
+          <table class="dtable">
+            <tr><th>Sample</th><th>Time</th><th class="n">Segmented cells</th><th class="n">Pass QC</th><th class="n">Transcripts</th></tr>
+            <tr><td>B3</td><td>T0</td><td class="n">318,320</td><td class="n">235,950 <span class="sub">(74%)</span></td><td class="n">79.2 M</td></tr>
+            <tr><td>C3</td><td>T0</td><td class="n">426,526</td><td class="n">348,052 <span class="sub">(82%)</span></td><td class="n">125.1 M</td></tr>
+            <tr><td>Region_1_0102917</td><td>T1</td><td class="n">34,478</td><td class="n">29,787 <span class="sub">(86%)</span></td><td class="n">12.7 M</td></tr>
+            <tr><td>Region_1_0102913</td><td>T2</td><td class="n">122,202</td><td class="n">95,575 <span class="sub">(78%)</span></td><td class="n">27.1 M</td></tr>
+            <tr><td>Region_1_0103076</td><td>T3</td><td class="n">273,156</td><td class="n">140,037 <span class="sub">(51%)</span></td><td class="n">22.5 M</td></tr>
+            <tr><td>Region_1_0103350</td><td>T3</td><td class="n">201,503</td><td class="n">119,352 <span class="sub">(59%)</span></td><td class="n">21.7 M</td></tr>
+            <tr class="sum"><td>Total</td><td>—</td><td class="n">1,376,185</td><td class="n">968,753 <span style="color:#9ad6a3">(70%)</span></td><td class="n">288.4 M</td></tr>
+          </table>
+          <p class="sub" style="margin-top:0.6em;"><strong>968,753 cells (70%) pass QC</strong> and enter every cell-level
+            analysis in this deck; fractions below use that denominator. Transcripts are qv ≥ 20 gene calls.
+            One shared <strong>428-gene panel</strong> across all samples — no probe-level normalization needed.</p>
+          <aside class="notes"><strong>Scope and the QC denominator.</strong><ul><li>1.38 M cells · 288 M transcripts · one shared 428-gene panel.</li><li>70% (969 k) pass QC — the denominator for every cell-level analysis.</li><li>Identical panel across samples → no probe normalization needed.</li></ul></aside>
+        </section>
+
+        <!-- 1.2b QC thresholds -->
+        <section>
+          <p class="eyebrow">Cell quality control</p>
+          <h2>Keeping the real cells</h2>
+          <div class="cols text-wide">
+            <div>
+              <p>Xenium segmentation yields a cell for every candidate boundary — but many are
+                debris, fragments, or under-segmented nuclei carrying almost no signal. For each cell we
+                count its <strong>transcripts</strong> and <strong>distinct genes</strong>, then keep only cells
+                above a <strong>per-sample minimum on both</strong>:</p>
+              <table class="dtable">
+                <tr><th>Sample (example)</th><th class="n">min transcripts</th><th class="n">min genes</th><th class="n">% kept</th></tr>
+                <tr><td>B3 (T0)</td><td class="n">26</td><td class="n">11</td><td class="n">74%</td></tr>
+                <tr><td>Region_1_0102913 (T2)</td><td class="n">61</td><td class="n">25</td><td class="n">78%</td></tr>
+                <tr><td>Region_1_0103076 (T3)</td><td class="n">17</td><td class="n">10</td><td class="n">51%</td></tr>
+              </table>
+              <p class="sub">Thresholds are set per sample from its own count distribution — stricter where
+                background is higher. Low-QC cells are dropped from all cell-level analyses (but their
+                transcripts still count toward the totals above).</p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <video src="img/qc-threshold.mp4"
+                       poster="img/qc-threshold.png"
+                       data-autoplay loop muted playsinline preload="metadata"></video>
+              </div>
+              <figcaption class="mcap"><span class="live">▶ live demo</span> — applying a transcript-count threshold to filter low-QC cells</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Why we drop cells before analysis.</strong><ul><li>Segmentation over-calls cells — debris, fragments, empty nuclei.</li><li>Keep cells above a per-sample floor on BOTH transcript count and distinct genes.</li><li>Dropped cells still count toward transcript totals, not cell analyses.</li></ul></aside>
+        </section>
+
+        <!-- 1.3 panel I -->
+        <section>
+          <p class="eyebrow">The panel, by design — I</p>
+          <h2>An <span class="c-blue">immune-centric</span> panel</h2>
+          <div class="cols">
+            <div>
+              <p><strong>428 targeting probes</strong> (+20 negative-control probes). The design leans
+                heavily toward immunology:</p>
+              <ul class="tight">
+                <li><strong>63 TCR CDR3 clonotype probes</strong> (31 α + 32 β) — a spatial readout of specific
+                  T-cell clonotypes, unusual for an off-the-shelf panel</li>
+                <li><strong>31 chemokines</strong> + <strong>15 chemokine receptors</strong></li>
+                <li><strong>8 immune checkpoints</strong> — PD-1, CTLA4, LAG3, TIM-3, PD-L1, CD276, ICOS, IDO1</li>
+              </ul>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-panel"></div></div>
+              <figcaption class="mcap">428 probes by category ·
+                <span style="color:#4fb6c4">immune</span> ·
+                <span style="color:#7aa2ff">mutation</span> ·
+                <span style="color:#e0b03b">tumour</span> ·
+                <span style="color:#e0883b">stroma</span> ·
+                <span style="color:#8a8a8a">other</span></figcaption>
+            </figure>
+          </div>
+          <p class="sub" style="margin-top:0.5em;">Method: imaging-based in-situ single-cell spatial transcriptomics (Xenium)<sup class="cite">[1]</sup>.</p>
+          <aside class="notes"><strong>The panel is built for immunology.</strong><ul><li>Standout: 63 TCR CDR3 clonotype probes (31 α / 32 β) — spatial T-cell clones, rare off-the-shelf.</li><li>Plus 31 chemokines and 8 checkpoints.</li><li>These TCR probes carry Act 4.</li></ul></aside>
+        </section>
+
+        <!-- 1.4 panel II -->
+        <section>
+          <p class="eyebrow">The panel, by design — II</p>
+          <h2>Mutations, matrix &amp; the limits</h2>
+          <div class="cols">
+            <div>
+              <ul class="tight">
+                <li><strong>66 WT/ALT allele-discriminating probes</strong> across <strong>33 genes</strong> —
+                  spatial mapping of specific alleles / somatic variants</li>
+                <li>only <strong>2 collagen probes</strong> (COL1A1/2) + a few ECM — sparse for a bone tumour</li>
+              </ul>
+              <div class="stat a-green" style="margin-top:0.6em;">
+                <span class="q">What we can measure</span>
+                <div class="body">cytotoxic effectors <strong>GZMA, GZMB, FASLG, IFNG</strong>; checkpoints;
+                  chemokines including the TLS set <strong>CXCL13 / CCL19 / CCL21</strong>.</div>
+              </div>
+              <div class="stat a-red">
+                <span class="q">What we cannot</span>
+                <div class="body"><strong>PRF1, NKG7, GNLY, GZMK, GZMH absent</strong> — so we read cytotoxic
+                  <em>potential</em>, not perforin/granulysin-based killing. Neutrophil granule genes
+                  (MPO, ELANE, S100A8/9) are also absent.</div>
+              </div>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <img src="img/wt_alt_probes.png" alt="WT vs ALT allele-probe transcripts (H1-2 and EXOC4) plotted on a T3 sample">
+              </div>
+              <figcaption class="mcap">Allele probes in the viewer — <span style="color:#e8e84a">H1-2 WT</span> vs
+                <span style="color:#e64ae6">H1-2 ALT</span> (and EXOC4 WT/ALT) plotted as separate transcripts</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>What the panel can and can't see.</strong><ul><li>66 WT/ALT allele probes (33 genes) → read somatic variants in situ (Act 3).</li><li>Have: GZMA/B, FASLG, IFNG, checkpoints, TLS chemokines.</li><li>Missing: PRF1/NKG7/GNLY/GZMK → cytotoxic potential, not confirmed killing. Sparse collagen for a bone tumour.</li></ul></aside>
+        </section>
+
+        <!-- 1.5 how to read -->
+        <section>
+          <p class="eyebrow">How to read these slides</p>
+          <h2>Two honest caveats up front</h2>
+          <div class="caveat"><strong>n = 1 patient, ~1–2 samples per timepoint.</strong> Clusters are
+            annotated <em>independently per sample</em>, so cross-sample comparisons are semantic and
+            <strong>hypothesis-generating</strong> — directions, not statistics.</div>
+          <div class="callout"><strong>Region ≠ contact.</strong> "Inside the tumour <em>region</em>" (signed
+            distance to a majority-malignant mask) is a different question from "touching tumour
+            <em>cells</em>" (neighbour enrichment). Here they <strong>disagree</strong> — and that disagreement
+            is the headline of Act 4, not a contradiction.</div>
+          <aside class="notes"><strong>Set expectations before any result.</strong><ul><li>n = 1, per-sample clustering → cross-sample comparisons are directions, not statistics.</li><li>"Inside" = two things: tumour REGION (signed distance) vs touching tumour CELLS (neighbours).</li><li>They disagree here — that's the Act 4 headline, not a contradiction.</li></ul></aside>
+        </section>
+      </section>
+
+      <!-- ===================== ACT 2 ===================== -->
+      <section>
+        <section class="divider" data-background-color="#121212">
+          <div class="num">2</div><h2>The cellular cast</h2>
+          <p class="road">Who is in this tumour · a marker primer · tumour identity</p>
+          <aside class="notes">Act 2 — who is in the tumour, a quick marker primer, and the malignant identity.</aside>
+        </section>
+
+        <!-- 2.1 cast -->
+        <section>
+          <p class="eyebrow">The cast</p>
+          <h2>Who is in this tumour</h2>
+          <div class="cols text-wide">
+            <div>
+              <ul class="tight">
+                <li><strong>Malignant osteoblastic</strong> tumour cells (RUNX2, SP7, IBSP, SATB2) + subclones —
+                  osteogenic, proliferating, and a PD-L1⁺ immune-evasive subclone</li>
+                <li><strong>Stroma</strong> — CAF subsets (inflammatory iCAF; lymphoid-niche), endothelial,
+                  lymphatic, pericytes</li>
+                <li><strong>Immune</strong> — CD8 T (cytotoxic/exhausted), regulatory T, mixed/resting T,
+                  TAM subsets, dendritic cells, neutrophils</li>
+              </ul>
+              <p class="sub">Each sample was clustered independently (11–21 clusters); names below are the
+                per-sample annotations, harmonized by lineage for comparison.</p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <img src="img/fill_by_cluster.png" alt="Cells filled by cluster across a T3 section, with the cell-type legend">
+              </div>
+              <figcaption class="mcap">Cells filled by cluster — Region_1_0103076 (T3), with the predicted cell-type legend</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>The cast, in one slide.</strong><ul><li>Malignant osteoblastic + subclones (proliferating, PD-L1⁺ evasive).</li><li>Stroma (CAFs, endothelial, lymphatic); immune (CD8, Treg, TAM, DC, neutrophils).</li><li>Clustered independently per sample (11–21 clusters), harmonized by lineage.</li></ul></aside>
+        </section>
+
+        <!-- 2.2 marker primer -->
+        <section>
+          <p class="eyebrow">A quick primer (for everyone)</p>
+          <h2>Reading the immune markers</h2>
+          <table class="dtable">
+            <tr><th>Markers</th><th>Read as</th></tr>
+            <tr><td>CD3D/E, CD8A</td><td>T cell / cytotoxic T cell</td></tr>
+            <tr><td>FOXP3, CTLA4, IL2RA</td><td>regulatory T cell (suppressive)</td></tr>
+            <tr><td>GZMA, GZMB, FASLG, IFNG</td><td>cytotoxic effector program</td></tr>
+            <tr><td>PD-1 (PDCD1), LAG3, TIM-3</td><td>checkpoints / exhaustion</td></tr>
+            <tr><td>TCF7</td><td>stem-like / progenitor-exhausted CD8<sup class="cite">[5]</sup></td></tr>
+            <tr><td>CD163, APOE, SPP1</td><td>tumour-associated macrophage (M2 / pro-tumour)</td></tr>
+            <tr><td>CXCL9 vs SPP1</td><td>macrophage polarity axis (anti- vs pro-tumour)<sup class="cite">[4]</sup></td></tr>
+            <tr><td>ARG1</td><td>"N2" immunosuppressive neutrophil<sup class="cite">[7]</sup></td></tr>
+          </table>
+          <aside class="notes"><strong>Orientation for the mixed audience — skip if immunologists.</strong><ul><li>Cytotoxic = GZMA/B, FASLG, IFNG; exhaustion = PD-1/LAG3/TIM-3; TCF7 = stem-like.</li><li>TAM = CD163/APOE/SPP1; CXCL9 : SPP1 = anti- vs pro-tumour polarity.</li></ul></aside>
+        </section>
+
+        <!-- 2.3a tumour identity: DE markers -->
+        <section>
+          <p class="eyebrow">The malignant compartment</p>
+          <h2>An osteoblastic tumour</h2>
+          <div class="cols">
+            <div>
+              <p>The malignant cells carry a clear <strong>osteoblastic program</strong> — RUNX2, SP7 (Osterix),
+                IBSP, SATB2 — the top differential-expression markers of the malignant cluster, consistent with
+                osteosarcoma<sup class="cite">[3]</sup>.</p>
+              <ul class="tight">
+                <li>cancer-testis antigens (MAGE family) — potential immunotherapy targets</li>
+                <li>an <strong>immune-evasive subclone</strong> expressing <strong>CD274 (PD-L1)</strong></li>
+                <li>a proliferating subset (CDK1, BRCA1/2) at T3</li>
+              </ul>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <video src="img/osteoblastic-program-1.mp4" data-autoplay loop muted playsinline preload="metadata"></video>
+              </div>
+              <figcaption class="mcap"><span class="live">▶ live demo</span> — cluster DE markers of the malignant osteoblastic cluster</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>The malignant compartment, by markers.</strong><ul><li>Clear osteoblastic program: RUNX2, SP7, IBSP, SATB2.</li><li>Plus MAGE cancer-testis antigens, a PD-L1⁺ evasive subclone, a proliferating subset at T3.</li></ul></aside>
+        </section>
+
+        <!-- 2.3b tumour identity: markers in situ -->
+        <section>
+          <p class="eyebrow">The malignant compartment</p>
+          <h2>The osteoblastic program, <span class="c-teal">in situ</span></h2>
+          <div class="cols">
+            <div>
+              <p>Plotted as transcripts, those osteoblastic markers trace the malignant compartment directly
+                on the tissue — the same program the DE table flags, now in space.</p>
+              <p class="sub">Each dot is a detected molecule; the markers concentrate over the malignant regions
+                rather than the stroma or immune pockets.</p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <video src="img/osteoblastic-program-2.mp4" data-autoplay loop muted playsinline preload="metadata"></video>
+              </div>
+              <figcaption class="mcap"><span class="live">▶ live demo</span> — osteoblastic markers plotted as transcripts</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>The same program, in space.</strong><ul><li>Plotted as transcripts, the osteoblastic markers trace the malignant compartment directly.</li><li>They concentrate over tumour, not stroma — DE confirmed spatially.</li></ul></aside>
+        </section>
+      </section>
+
+      <!-- ===================== ACT 3 (mutations) ===================== -->
+      <section>
+        <section class="divider" data-background-color="#121212">
+          <div class="num">3</div><h2>The somatic variants, in situ</h2>
+          <p class="road">reading the patient's own mutations · validating them in tumour cells · zygosity, clonality &amp; the immune view</p>
+          <aside class="notes">Act 3 — the patient's own somatic variants, read directly off the tissue.</aside>
+        </section>
+
+        <!-- 3.1 intro -->
+        <section>
+          <p class="eyebrow">The mutation probes</p>
+          <h2>Reading the patient's <span class="c-blue">own mutations</span></h2>
+          <p class="lede">The <strong>33 WT/ALT probe pairs</strong> aren't a generic cancer panel — they target
+            <strong>this patient's somatic variants</strong>, called from their own sequencing, with a probe for the
+            reference (WT) and the alternate (ALT) allele at each site.</p>
+          <ul class="tight" style="margin-top:0.5em;">
+            <li><strong>28 SNVs · 1 insertion</strong> (<span class="key">MAP2</span>) <strong>· 4 deletions</strong> —
+              the probe name encodes the position and alternate allele</li>
+            <li>a few are recognizable (<span class="key">ATRX</span> — chromatin remodeller, the ALT-telomere pathway in
+              osteosarcoma); most are patient-private</li>
+          </ul>
+          <div class="callout"><strong>The questions a counting exercise can answer.</strong> Is each variant
+            <em>detectable</em>? Is the ALT allele <em>restricted to tumour cells</em> (validating both the probe and the
+            original call)? What is the <em>allelic state</em> — heterozygous, or lost (LOH)? Is it <em>clonal</em> and
+            <em>truncal</em> across T0→T3? And do <em>T cells engage</em> the mutated cells?</div>
+          <aside class="notes"><strong>Patient-private mutation probes.</strong><ul><li>33 WT/ALT probe pairs target THIS patient's variants (28 SNV, 1 ins, 4 del).</li><li>Each site has a reference (WT) and alternate (ALT) probe.</li><li>Questions: detectable? tumour-restricted? allelic state? clonal/truncal? T-cell engaged?</li></ul></aside>
+        </section>
+
+        <!-- 3.2 methods: two tumour definitions + region mask -->
+        <section>
+          <p class="eyebrow">Method — defining "tumour" two ways</p>
+          <h2>Where <span class="c-amber">is</span> the tumour?</h2>
+          <div class="cols">
+            <div>
+              <p>Every specificity test below is run under <strong>both</strong> definitions, so a finding can't be an
+                artefact of either one:</p>
+              <ul class="tight">
+                <li><strong>Malignant clusters</strong> — cells whose annotated type is malignant (the confident clone).</li>
+                <li><strong>Tumour <span class="c-teal">region</span> mask</strong> — a territory, not a cell label:</li>
+              </ul>
+              <div class="stat a-teal">
+                <span class="q">The signed-distance mask</span>
+                <div class="body">Rasterize malignant cells on a <strong>20 µm</strong> grid → keep bins that are
+                  <strong>majority-malignant</strong> → a <strong>40 µm morphological close</strong> fills inter-cell
+                  gaps into one solid region → an <strong>exact Euclidean distance transform</strong> gives every cell a
+                  signed distance: <span class="c-teal">negative inside</span>, positive outside.</div>
+              </div>
+              <p class="sub">The region holds ~2× as many cells as the clusters (it sweeps in the stroma and immune cells
+                trapped inside the mass). Reassuringly, the two definitions <strong>agree</strong> on which variants are
+                allele-specific.</p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <img src="img/tumor-distance-mask.png" alt="Tumour-distance view — cells coloured by signed distance to the tumour mask, with the mask outline overlaid">
+              </div>
+              <figcaption class="mcap">The region mask the signed distance is measured from — cells coloured inside→outside, the literal picture of the method</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Two tumour definitions, every test run under both.</strong><ul><li>Clusters = cells called malignant (conservative).</li><li>Region = a territory: rasterize 20 µm → majority rule → close 40 µm gaps → signed distance.</li><li>Region holds ~2× the cells (sweeps in trapped stroma/immune). They agree — that's the point.</li></ul></aside>
+        </section>
+
+        <!-- 3.2b what makes a cell "malignant" -->
+        <section>
+          <p class="eyebrow">The "malignant" label, unpacked</p>
+          <h2>What makes a cell <span class="c-amber">malignant</span>?</h2>
+          <div class="cols">
+            <div>
+              <p>Each expression cluster is labelled by a model reading its <strong>top-20 differential markers</strong>
+                (returning a type, a confidence, and the gene rationale). The "malignant" call rests on two recurring
+                signatures:</p>
+              <ul class="tight">
+                <li><strong>Osteoblastic identity</strong> — <span class="key">RUNX2</span>,
+                  <span class="key">SP7</span> (Osterix), <span class="key">SATB2</span>, <span class="key">IBSP</span>,
+                  <span class="key">PANX3</span>: the osteosarcoma lineage program.</li>
+                <li><strong>Proliferation &amp; genome instability</strong> — <span class="key">CDK1/2</span>,
+                  <span class="key">EZH2</span>, <span class="key">BRCA1/2</span>, <span class="key">RAD51</span>:
+                  cycling and DNA-repair activity that normal bone cells lack.</li>
+              </ul>
+              <p class="sub">(Cancer-testis antigens — MAGE / PAGE — reinforce the call in the one sample where they
+                surface.) 2–4 clusters per sample, <strong>~22–32% of cells</strong> — stable across all six independent
+                annotations; <strong>76%</strong> of malignant cells are called "high" confidence.</p>
+            </div>
+            <div>
+              <div class="caveat"><strong>The hard part.</strong> Osteosarcoma cells <em>are</em> osteoblast-like — they
+                share RUNX2 / SP7 / COL1A1 with normal bone-forming cells, so markers alone can't perfectly separate
+                malignant from normal osteoblasts. The proliferation / genome-instability layer is what tips the call —
+                normal osteoblasts aren't cycling.</div>
+              <div class="callout"><strong>An independent check.</strong> The patient's own somatic <strong>ALT
+                alleles</strong> — never used to make this call — are detected <strong>~4–5× more often</strong> in the
+                malignant clusters than anywhere else (<span class="key">DYNC1H1</span> up to 9×). The expression-defined
+                label and the genotype-defined clone <strong>coincide</strong>.</div>
+              <p class="sub"><strong>Too many?</strong> normal osteoblasts or doublets could inflate it (the medium-confidence
+                clusters, mostly in C3). <strong>Too few?</strong> dedifferentiated tumour cells that dropped the
+                osteoblastic program may hide among stroma. We hedge by running every test under <em>both</em> the cluster
+                and region definitions.</p>
+            </div>
+          </div>
+          <aside class="notes"><strong>Be candid — this label carries the analysis.</strong><ul><li>A model reads each cluster's top-20 DE markers; no ground truth.</li><li>Hard part: osteosarcoma cells look like osteoblasts (RUNX2/SP7/COL1A1); proliferation markers (CDK1/EZH2/BRCA/RAD51) tip the call.</li><li>Reassurance: the patient's own ALT alleles (not used to label) are 4–5× enriched in these clusters. ~22–32% of cells, stable across all 6.</li></ul></aside>
+        </section>
+
+        <!-- 3.3 detection isn't confirmation -->
+        <section>
+          <p class="eyebrow">The interpretation trap</p>
+          <h2>Detection isn't <span class="c-red">confirmation</span></h2>
+          <div class="cols">
+            <div>
+              <ul class="tight">
+                <li>All <strong>33 variants are detected</strong> — but detection is dominated by <strong>expression</strong>:
+                  <span class="key">H1-2</span> (a histone) fires in <strong>134k cells</strong>, <span class="key">CUL9</span>
+                  in <strong>308</strong>.</li>
+                <li>Allele probes are low-efficiency — they capture only <strong>~1–39%</strong> (median 9%) of the gene's
+                  plain expression probe. Counts are a <strong>pseudo-VAF</strong>, not a true allele fraction.</li>
+              </ul>
+              <div class="caveat"><strong>"ALT enriched in tumour" is not enough.</strong> If a gene is simply more
+                expressed in tumour, its <em>WT</em> probe is enriched too. <span class="key">ATRX</span>: ALT 2.1×
+                enriched (p≈10⁻²⁰³) — but WT equally so, and pseudo-VAF identical in tumour vs rest (0.39 vs 0.37).
+                <strong>Not allele-specific.</strong></div>
+            </div>
+            <div>
+              <div class="stat a-green">
+                <span class="q">The honest test for somatic specificity</span>
+                <div class="body">ALT enriched <strong>beyond</strong> WT <em>and</em> pseudo-VAF higher in tumour than in
+                  the rest — applied per sample, under both tumour definitions. The WT probe is the built-in control
+                  (a germline allele should sit everywhere the gene is expressed).</div>
+              </div>
+              <div class="caveat"><strong>Mind the noise floor.</strong> Many allele probes fire near the
+                negative-control background. We gate on <strong>signal-to-control ≥ 2×</strong>; <strong>10 of 33</strong>
+                fall below it (e.g. <span class="key">MAP2</span>, <span class="key">ABI3BP</span>) and are flagged
+                <em>low-signal</em> no matter how clean their ratio looks. Dropout (~1 transcript per cell) likewise makes
+                single-cell co-detection an undercount — so we lean on enrichment and allele <em>balance</em>, not raw counts.</div>
+            </div>
+          </div>
+          <aside class="notes"><strong>Two interpretation traps.</strong><ul><li>Detection tracks expression, not mutation — counts are a pseudo-VAF (probes capture ~1–39%).</li><li>"ALT up in tumour" is confounded: if the gene is just more expressed, WT is up too (= ATRX).</li><li>Honest test: ALT beyond WT + signal-to-control ≥ 2×. 10/33 sit at the noise floor (MAP2) — not called.</li></ul></aside>
+        </section>
+
+        <!-- 3.3b pseudo-VAF worked example -->
+        <section>
+          <p class="eyebrow">How the pseudo-VAF is built — one worked example</p>
+          <h2>What "<span class="c-green">~0.9 ALT</span>" actually counts</h2>
+          <div class="cols">
+            <div>
+              <p>Take <span class="key">DYNC1H1</span> in one T3 sample — a probe well <strong>above</strong> the noise
+                floor (ALT 10×, WT 3× the negative control). Each filter narrows what the VAF is computed from:</p>
+              <table class="dtable">
+                <tr><th>counted over…</th><th class="n">ALT</th><th class="n">WT</th></tr>
+                <tr><td>whole slide (transcripts)</td><td class="n">2,915</td><td class="n">785</td></tr>
+                <tr><td>…inside QC-passing cells</td><td class="n">2,586</td><td class="n">522</td></tr>
+                <tr><td>…cells carrying it, in <strong>tumour</strong></td><td class="n">1,830</td><td class="n">118</td></tr>
+              </table>
+              <p class="sub">Of <strong>34,192 tumour cells, only ~1,950 (5.7%)</strong> carry <em>any</em> DYNC1H1
+                allele transcript — even for a well-detected gene, the data is sparse.</p>
+            </div>
+            <div>
+              <div class="stat a-green">
+                <span class="q">The pseudo-VAF, in words</span>
+                <div class="body">Among the <strong>~1,950 tumour cells that carry either allele</strong>,
+                  <strong>1,830 (94%) carry ALT</strong> and 118 (6%) carry WT → pseudo-VAF <strong>0.94</strong>. Outside
+                  the tumour it's <strong>0.63</strong>. That tumour-vs-rest gap is the somatic signal.</div>
+              </div>
+              <div class="caveat"><strong>So it's a ratio over a thin slice.</strong> The <em>direction</em> (ALT
+                concentrates in tumour) is rock-solid — it rests on all 34k tumour vs 106k non-tumour cells, where uniform
+                background can't fake a contrast. The exact <em>value</em> (0.94) is an estimate from ~1,950 informative
+                cells, so we read it as "ALT-dominant," not a precise allele fraction.</div>
+            </div>
+          </div>
+          <aside class="notes"><strong>A worked example, to show the sparsity.</strong><ul><li>DYNC1H1 — a strong probe (10× background).</li><li>Of 34 k tumour cells, only ~1,950 (<6%) carry any allele transcript.</li><li>Among those, 94% carry ALT → pseudo-VAF 0.94 (vs 0.63 outside). Direction rock-solid; exact value an estimate → say “ALT-dominant.”</li></ul></aside>
+        </section>
+
+        <!-- 3.4 which variants validate (scatter) -->
+        <section>
+          <p class="eyebrow">In-situ validation</p>
+          <h2>Which variants are <span class="c-green">truly tumour-specific</span></h2>
+          <div class="cols">
+            <div>
+              <p>Per variant, pseudo-VAF in tumour vs in the rest (malignant-cluster definition). Points <strong>above the
+                diagonal</strong> carry more ALT in tumour — counted "specific" only if ALT beats WT <em>and</em> the ALT
+                probe clears the noise floor (≥2× the negative-control background):</p>
+              <table class="dtable">
+                <tr><th>Verdict (≥4/6 samples)</th><th class="n">variants</th></tr>
+                <tr><td><span class="c-green">Somatic-specific</span></td><td class="n">9</td></tr>
+                <tr><td><span class="c-amber">Sample-variable</span></td><td class="n">11</td></tr>
+                <tr><td><span class="c-red">Not allele-specific</span></td><td class="n">3</td></tr>
+                <tr><td style="color:#8a8a8a">Low-signal (at noise floor)</td><td class="n">10</td></tr>
+              </table>
+              <p class="sub">Led by <span class="key">DYNC1H1</span>, <span class="key">ZNF436</span>,
+                <span class="key">TECPR1</span>. <strong>10 variants sit at the noise floor</strong> (hollow) — e.g.
+                <span class="key">MAP2</span> looks dramatic but its ALT probe is at background, so we don't call it.
+                The <strong>region mask agrees</strong> in direction for every variant.</p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox">
+                <div class="vtoggle" id="mut-validate-toggle">
+                  <button data-scale="linear" class="on">linear</button>
+                  <button data-scale="log">log₁₀</button>
+                </div>
+                <div id="chart-mut-validate"></div>
+              </div>
+              <figcaption class="mcap">Pseudo-VAF in tumour vs rest, per variant (mean over 6 samples; log–log axes); diagonal = no allele specificity</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Which variants validate.</strong><ul><li>Above the diagonal = more ALT in tumour; counted only if ALT beats WT AND clears 2× background.</li><li>9 validate, 11 partial, 3 not tumour-restricted, 10 at the noise floor (hollow).</li><li>MAP2 = teaching case: looks like strong LOH but its ALT probe is at background. Region mask agrees on direction.</li></ul></aside>
+        </section>
+
+        <!-- 3.5 zygosity / LOH -->
+        <section>
+          <p class="eyebrow">Allelic state</p>
+          <h2>Zygosity &amp; <span class="c-blue">loss of heterozygosity</span></h2>
+          <div class="cols">
+            <div>
+              <p>Among cells expressing the gene, the split of <span class="c-blue">WT-only</span> /
+                <span class="c-green">ALT-only</span> / both reveals the allelic state:</p>
+              <ul class="tight">
+                <li><strong>ALT-dominant / LOH</strong> — <span class="key">DYNC1H1</span> (84% ALT-only, s/c 27×) and
+                  <span class="key">ZNF436</span> (tumour VAF <strong>0.94</strong>, WT <em>depleted</em> in tumour): the
+                  reference allele is largely gone.</li>
+                <li><strong>Reference retained</strong> — <span class="key">SLC25A12</span> still carries WT; and the
+                  highly-expressed histone <span class="key">H1-2</span> catches <strong>both</strong> alleles in 21% of
+                  cells (dropout in reverse).</li>
+                <li><strong>Not allele-specific</strong> — <span class="key">ATRX</span> is heterozygous everywhere;
+                  <span class="key">EPG5</span> is WT-dominant.</li>
+              </ul>
+              <div class="caveat"><strong>Dropout caveat.</strong> Except for highly-expressed genes, "both" cells are
+                rare (~1 transcript/cell), so co-detection under-reads true heterozygosity. The robust LOH evidence is
+                <strong>ALT dominance + WT depletion in tumour</strong>, not the both-fraction. (All six shown clear the
+                signal-to-control gate.)</div>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-mut-zygosity"></div></div>
+              <figcaption class="mcap">Allele state among expressing cells (pooled, 6 samples) — WT-only / ALT-only / both</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Allelic state from the WT/ALT/both split.</strong><ul><li>LOH = ALT-dominant + WT depleted in tumour (DYNC1H1, ZNF436); ATRX stays heterozygous.</li><li>"Both" is rare (dropout) except the histone H1-2 (21%).</li><li>Robust LOH evidence = ALT dominance + WT depletion, not the both-fraction.</li></ul></aside>
+        </section>
+
+        <!-- 3.5b allelic state over time -->
+        <section>
+          <p class="eyebrow">Allelic state over time</p>
+          <h2>The allele fractions <span class="c-teal">hold</span> across T0→T3</h2>
+          <div class="cols">
+            <div>
+              <p>Tracking each variant's pseudo-VAF <em>in tumour cells</em> across the timeline, the lines are
+                <strong>flat</strong> — the allelic state is set early and carried through:</p>
+              <ul class="tight">
+                <li><span class="key">DYNC1H1</span> and <span class="key">ZNF436</span> stay
+                  <strong>ALT-dominant (~0.9)</strong> from the first resection to the final excision — stable LOH,
+                  not a treatment-driven shift.</li>
+                <li><span class="key">SLC25A12</span> / <span class="key">H1-2</span> hold steady intermediate-to-low
+                  fractions; the non-specific <span class="key">ATRX</span> / <span class="key">EPG5</span> stay low
+                  (their occasional bump is the noise you'd expect off a near-zero base).</li>
+              </ul>
+              <div class="callout"><strong>A truncal clone.</strong> Stable allele fractions across four timepoints are
+                the signature of variants present from the start and retained throughout — consistent with the
+                clonal/truncal reading, and an internal consistency check on the probes themselves.</div>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-mut-vaft"></div></div>
+              <figcaption class="mcap">Pseudo-VAF in tumour cells per timepoint (lines = per-timepoint means, dots = samples)</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Allele fractions are flat over time.</strong><ul><li>Pseudo-VAF in tumour cells stays constant T0→T3.</li><li>DYNC1H1/ZNF436 stay ALT-dominant (~0.9) — stable LOH, not treatment-driven.</li><li>Flat fractions = a truncal clone, and a probe consistency check.</li></ul></aside>
+        </section>
+
+        <!-- 3.6 clonal & truncal -->
+        <section>
+          <p class="eyebrow">Clonal architecture</p>
+          <h2>Clonal in space, <span class="c-teal">truncal</span> in time</h2>
+          <div class="cols">
+            <div>
+              <div class="stat a-purple">
+                <span class="q">Spatially patchy?</span>
+                <div class="body">ALT⁺ tumour cells are only <strong>weakly clustered</strong> (binary Moran's I ≈
+                  <strong>0.02–0.05</strong> over a 30 µm graph) — mild patchiness, not sharp subclonal blocks at this
+                  resolution.</div>
+              </div>
+              <div class="stat a-teal">
+                <span class="q">Truncal across the timeline?</span>
+                <div class="body">The high-signal variants are allele-specific in <strong>all six samples, T0→T3</strong>
+                  (<span class="key">DYNC1H1</span>, <span class="key">ZNF436</span>, <span class="key">TECPR1</span>,
+                  <span class="key">EXOC4</span> — 6/6).</div>
+              </div>
+            </div>
+            <div>
+              <p>Being detectable and tumour-specific <strong>from the first resection through the final excision</strong>
+                is the signature of a <strong>truncal</strong> clone — variants present early and carried throughout,
+                rather than emerging under treatment.</p>
+              <p class="sub">A handful are specific in only some samples (sample-variable), which at n = 1 we read as
+                detection noise or regional sampling, not confident subclonal structure.</p>
+            </div>
+          </div>
+          <aside class="notes"><strong>Clonal architecture.</strong><ul><li>ALT⁺ cells only weakly clustered in space (Moran's I 0.02–0.05) — no sharp subclones at this resolution.</li><li>High-signal variants specific in all 6 samples (DYNC1H1/ZNF436/TECPR1/EXOC4) → truncal, present from the start.</li></ul></aside>
+        </section>
+
+        <!-- 3.7 immune view of mutated cells -->
+        <section>
+          <p class="eyebrow">Do T cells see the mutations?</p>
+          <h2>T cells don't <span class="c-red">single out</span> mutated cells</h2>
+          <div class="cols">
+            <div>
+              <p>For each tumour cell we counted its T-cell neighbours within 30 µm, then compared
+                <strong>ALT⁺ vs ALT⁻</strong> tumour cells:</p>
+              <ul class="tight">
+                <li>T-cell contact around tumour cells <strong>rises sharply</strong> T0→T3 (mean
+                  <strong>0.3 → ~11</strong> neighbours) — the infiltration story of the next act.</li>
+                <li>but ALT⁺ cells are <strong>not</strong> preferentially contacted — the ratio stays
+                  <strong>0.92–0.99</strong> in every sample (if anything, slightly fewer).</li>
+              </ul>
+              <div class="caveat"><strong>Detectable variant ≠ presented neoantigen.</strong> Antigen presentation needs
+                HLA + processing (not measured here), and clonotype-level proximity is underpowered — so this is
+                "no spatial signal of mutation-targeted engagement," not "no neoantigen."</div>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-mut-prox"></div></div>
+              <figcaption class="mcap">Mean T-cell neighbours (≤30 µm) of ALT⁺ vs ALT⁻ tumour cells, by timepoint — the lines overlap</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Do T cells target the mutated cells?</strong><ul><li>Per tumour cell, T-cell neighbours within 30 µm; ALT⁺ vs ALT⁻.</li><li>Contact rises sharply T0→T3 (0.3 → ~11) — but ALT⁺ cells not preferentially contacted (ratio 0.92–0.99).</li><li>"No spatial signal of mutation-targeted engagement" ≠ "no neoantigen" (HLA/processing not measured).</li></ul></aside>
+        </section>
+
+        <!-- 3.8 summary -->
+        <section>
+          <p class="eyebrow">What the mutations tell us</p>
+          <h2>The panel reads this tumour's <span class="c-green">genome in place</span></h2>
+          <ul class="tight">
+            <li><strong>Some allele probes clearly work.</strong> <strong>9 of 33</strong> variants validate as
+              somatic-specific above the noise floor (11 more show it less consistently) — confirming both probe and
+              original call in situ, under two independent tumour definitions.</li>
+            <li><strong>Allelic state is visible:</strong> LOH / ALT-dominant for <span class="key">DYNC1H1</span> and
+              <span class="key">ZNF436</span>; heterozygous retention for <span class="key">ATRX</span>.</li>
+            <li><strong>Truncal clone:</strong> the high-signal variants persist across T0→T3 — present from the first
+              resection, not treatment-emergent.</li>
+            <li><strong>Detection ≠ confirmation:</strong> <strong>10/33</strong> probes sit at the negative-control
+              noise floor (e.g. <span class="key">MAP2</span>) and 3 fire but aren't tumour-restricted
+              (<span class="key">ATRX</span>, BMP1, EPG5) — neither can be called.</li>
+            <li><strong>No mutation-targeted immunity</strong> in space — T cells engage the tumour broadly, not the
+              mutated cells specifically.</li>
+          </ul>
+          <p class="sub">Caveats throughout: pseudo-VAF (allele probes capture ~1–39% of expression), single-molecule
+            dropout, signal-to-control near background for many probes, and n = 1 patient.</p>
+          <aside class="notes"><strong>Act 3 in one slide.</strong><ul><li>9/33 variants validate as somatic-specific (11 more partial), under both tumour definitions.</li><li>Allelic state visible (LOH in DYNC1H1/ZNF436); truncal across T0→T3.</li><li>10/33 at the noise floor, 3 not tumour-restricted — can't call. No mutation-targeted immunity in space.</li></ul></aside>
+        </section>
+
+        <!-- 3.9 the therapy, read in situ -->
+        <section>
+          <p class="eyebrow">A therapeutic transgene, read in situ</p>
+          <h2>The panel sees the <span class="c-orange">oncolytic virus</span> arrive</h2>
+          <div class="cols">
+            <div>
+              <p>Two panel probes target <strong>AdAPT-001</strong> (EpicentRx) — a replication-competent
+                type-5 adenovirus armed with a <strong>TGF-β trap</strong> transgene.<sup class="cite">[9]</sup>
+                <span class="key">epicentrx-left-right</span> detects the inserted construct;
+                <span class="key">epicentrx-left-ref</span> is its paired reference. The patient received
+                <strong>7 intratumoral doses after T1</strong>.</p>
+              <div class="stat a-orange">
+                <span class="q">Does the construct probe track the dosing?</span>
+                <div class="body">Exactly. It sits <strong>below the negative-control noise floor</strong> at T0 and
+                  T1 (signal-to-control <strong>0.07–0.26</strong>), jumps to <strong>14×</strong> background at T2,
+                  and surges to <strong>520–740×</strong> at T3. The reference probe barely moves
+                  (≤1.2 until a modest 7–10× at T3) — so the construct/reference ratio climbs
+                  <strong>~0.2 → 12 → ~75</strong>.</div>
+              </div>
+              <div class="callout"><strong>Why it explodes.</strong> The virus is selectively lytic in cancer
+                cells, and its genome — including the trap transgene — is <strong>copy-amplified by viral
+                replication</strong> inside infected tumour cells.<sup class="cite">[9]</sup> We are watching the
+                therapy replicate in the tissue.</div>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-construct"></div></div>
+              <figcaption class="mcap">Probe abundance as signal-to-control (log scale; 1.0 = negative-control
+                background). Lines = per-timepoint means, dots = samples.</figcaption>
+            </figure>
+          </div>
+          <div class="caveat" style="margin-top:.4em"><strong>Which cells carry it? The lysis hides the answer.</strong>
+            As the construct surges, it becomes overwhelmingly <strong>extracellular</strong> — the fraction inside
+            segmented cells falls from ~90% (at the noise floor) to <strong>just 8% at T3</strong>, and ~90% of that
+            in-cell remainder lands in unsegmentable <strong>lysing-cell / doublet</strong> clusters (~2 copies/cell).
+            That is the fingerprint of active oncolysis, not a clean cell-type tag. At T2 (earlier, 27% still in-cell)
+            the signal spreads across TAM, malignant and CD8 cells. Consistent with replication in tumour, but
+            segmentation can't pin it to one intact lineage.</div>
+          <aside class="notes"><strong>The therapy, read in situ.</strong><ul><li>2 probes detect AdAPT-001 (oncolytic adenovirus + TGF-β trap); patient got 7 IT doses after T1.</li><li>Construct probe = textbook pharmacodynamic readout: below noise floor T0/T1, 14× at T2, 520–740× at T3; reference flat.</li><li>Steep because the virus copy-amplifies its transgene as it replicates in tumour.</li><li>Caveat: by T3 only 8% in-cell (lysis) — can't pin to one cell type.</li></ul></aside>
+        </section>
+
+        <!-- 3.10 the surge, on the tissue -->
+        <section>
+          <p class="eyebrow">The same surge, on the tissue</p>
+          <h2>Watch it <span class="c-orange">light up</span> over the timeline</h2>
+          <div class="smx">
+            <figure><div class="lab">T0 · B3</div><div class="box"><img src="img/adapt-t0-b3.png" alt="epicentrx-left-right in-cell density, T0 B3"></div></figure>
+            <figure><div class="lab">T0 · C3</div><div class="box"><img src="img/adapt-t0-c3.png" alt="epicentrx-left-right in-cell density, T0 C3"></div></figure>
+            <figure><div class="lab">T1</div><div class="box"><img src="img/adapt-t1.png" alt="epicentrx-left-right in-cell density, T1"></div></figure>
+            <figure><div class="lab">T2</div><div class="box"><img src="img/adapt-t2.png" alt="epicentrx-left-right in-cell density, T2"></div></figure>
+            <figure><div class="lab"><b>T3a</b></div><div class="box"><img src="img/adapt-t3a.png" alt="epicentrx-left-right in-cell density, T3a"></div></figure>
+            <figure><div class="lab"><b>T3b</b></div><div class="box"><img src="img/adapt-t3b.png" alt="epicentrx-left-right in-cell density, T3b"></div></figure>
+          </div>
+          <p class="mcap" style="max-width:none">In-cell <span class="key">epicentrx-left-right</span> transcripts, 100 µm bins (Q ≥ 20).
+            In-cell counts climb <b>41 · 50 · 12 → 537 → 17,187 · 6,158</b> (T0 → T3) and resolve into dense
+            focal hotspots only after dosing — the replication foci. <strong>Each panel is auto-scaled and at its
+            own physical scale</strong> (note the per-panel colour ramp and 500 µm–2 mm scale bars), so compare the
+            <em>emergence of foci</em>, not absolute colour. This is only the ~8 % that lands in cells — the
+            extracellular majority is the next slide.</p>
+          <aside class="notes"><strong>The same surge, on the tissue.</strong><ul><li>Same probe in space, one panel per sample.</li><li>In-cell counts 41/50/12 → 537 → 17 k/6 k; focal hotspots appear only after dosing = replication foci.</li><li>Caveats: each panel auto-scaled and at its own physical scale; this is in-cell only (the minority).</li></ul></aside>
+        </section>
+
+        <!-- 3.11 the lysis, up close -->
+        <section>
+          <p class="eyebrow">In a cell, or spilled from one?</p>
+          <h2>Toggle the cells off: the <span class="c-orange">lysis</span> is visible</h2>
+          <div class="cols text-wide">
+            <div>
+              <p>At T3, only <strong>~8 %</strong> of construct transcripts sit inside a segmented cell. Toggle
+                <span class="key">Only transcripts in cells</span> on and off in the viewer and the rest appears:
+                a dense <strong>extracellular cloud</strong> hugging the in-cell foci.</p>
+              <div class="stat a-orange">
+                <span class="q">Why it's spread outside cells</span>
+                <div class="body">AdAPT-001 is a <strong>lytic</strong> adenovirus — it bursts its host cell to
+                  release progeny.<sup class="cite">[9]</sup> The transcripts left behind, no longer bounded by a
+                  membrane, can't be assigned to a cell. The in-cell signal that <em>does</em> survive lands in the
+                  unsegmentable <strong>"ambiguous / artifact"</strong> cluster (~89 % of it in
+                  <span class="key">Region_1_0103350</span>) — the blown-out cells at the focus centre.</div>
+              </div>
+              <div class="callout"><strong>The artifact cluster is the map of replication.</strong> What the
+                pipeline flagged as junk is, here, the most informative label: it marks where the virus was actively
+                bursting cancer cells.</div>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <video src="img/adapt-lysis-toggle.mp4" data-autoplay loop muted playsinline preload="metadata"></video>
+              </div>
+              <figcaption class="mcap"><span class="key">Region_1_0103350</span> (T3b), a dense
+                <span class="key">epicentrx-left-right</span> focus: <span class="live">pink</span> = construct
+                transcripts, grey = cells. Toggling <strong>"Only transcripts in cells"</strong> off floods the
+                tissue with transcripts sitting <em>between</em> the cells — the extracellular payload from lysed
+                tumour cells; only ~8 % stays inside a cell.</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>The lysis, up close.</strong><ul><li>Toggle "only transcripts in cells" off → an extracellular cloud hugs the foci.</li><li>Only ~8% in-cell: the lytic virus bursts its host; the remnant lands in the “artifact” cluster (~89%).</li><li>That junk cluster is effectively the map of active viral replication.</li></ul></aside>
+        </section>
+      </section>
+
+      <!-- ===================== ACT 4 ===================== -->
+      <section>
+        <section class="divider" data-background-color="#121212">
+          <div class="num">4</div><h2>T cells: infiltration vs exclusion</h2>
+          <p class="road">The headline — region vs contact</p>
+          <aside class="notes">Act 4 — the headline: T cells are in the region but excluded from tumour-cell contact.</aside>
+        </section>
+
+        <!-- 3.1 two questions -->
+        <section>
+          <p class="eyebrow">Two different questions</p>
+          <h2>"Inside" can mean two things</h2>
+          <div class="cols">
+            <div class="stat a-teal"><span class="q">In the tumour region?</span>
+              <div class="body">Signed distance to a majority-malignant mask. Negative = inside the tumour mass
+                (which includes stromal/immune pockets).</div></div>
+            <div class="stat a-red"><span class="q">Touching tumour cells?</span>
+              <div class="body">Neighbourhood enrichment — is a cell type <em>adjacent</em> to malignant cells
+                more or less than chance?</div></div>
+          </div>
+          <p style="margin-top:0.6em;">A T cell can be deep <em>inside the region</em> yet never <em>touch</em> a
+            malignant cell. Watch these two answers diverge.</p>
+          <aside class="notes"><strong>Two questions that will diverge.</strong><ul><li>"In the region" (signed distance) vs "touching tumour cells" (neighbour enrichment).</li><li>A T cell can be deep in the mass yet never touch a malignant cell.</li></ul></aside>
+        </section>
+
+        <!-- 3.2 exclusion -->
+        <section>
+          <p class="eyebrow">Contact</p>
+          <h2>Malignant cells <span class="c-red">repel</span> T cells</h2>
+          <div class="cols text-wide">
+            <div>
+              <p>Neighbourhood-enrichment z for <strong>T cells × malignant cells</strong> is <strong>strongly
+                negative at every timepoint</strong> — T cells are excluded from direct contact with the
+                malignant compartment<sup class="cite">[2]</sup>:</p>
+              <table class="dtable">
+                <tr><th>Time</th><th>Sample</th><th class="n">T-cell × malignant z</th></tr>
+                <tr><td>T0</td><td>B3 / C3</td><td class="n c-red">−66.6 / −146.4</td></tr>
+                <tr><td>T1</td><td>0102917</td><td class="n c-red">−13.2</td></tr>
+                <tr><td>T2</td><td>0102913</td><td class="n c-red">−117.7</td></tr>
+                <tr><td>T3</td><td>0103076 / 0103350</td><td class="n c-red">−78.2 / −61.8</td></tr>
+              </table>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <img src="img/Malignant-cells-repel-T-cells.png" alt="Cell-type neighbourhood-enrichment heatmap, malignant x T-cell cool">
+              </div>
+              <figcaption class="mcap">Neighbourhood enrichment — malignant cells repel T cells (cool, negative z)</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Contact: exclusion.</strong><ul><li>T-cell × malignant neighbour z strongly negative everywhere (−13 to −146).</li><li>T cells are excluded from direct contact with the malignant compartment, at every timepoint.</li></ul></aside>
+        </section>
+
+        <!-- 3.3 penetrate region + localization -->
+        <section>
+          <p class="eyebrow">Region</p>
+          <h2>…yet T cells <span class="c-teal">penetrate the region</span></h2>
+          <div class="cols text-wide">
+            <div>
+              <p>By signed distance, CD8 T cells are often <strong>inside the tumour mass</strong> — and they sit
+                progressively <em>deeper</em> over time:</p>
+              <table class="dtable">
+                <tr><th>Sample</th><th>Time</th><th class="n">CD8 median</th><th class="n">% interior</th></tr>
+                <tr><td>B3</td><td>T0</td><td class="n">−23 µm</td><td class="n">21%</td></tr>
+                <tr><td>0102917</td><td>T1</td><td class="n">−20 µm</td><td class="n">64%</td></tr>
+                <tr><td>0102913</td><td>T2</td><td class="n">+20 µm</td><td class="n">16%</td></tr>
+                <tr><td>0103076</td><td>T3</td><td class="n">−14 µm</td><td class="n">76%</td></tr>
+                <tr><td>0103350</td><td>T3</td><td class="n">+20 µm</td><td class="n">75%</td></tr>
+              </table>
+              <p class="sub">CD8 occupy both margin and interior. <em>(Localization only — we have not
+                separately profiled the phenotype of border vs interior CD8.)</em></p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <img src="img/T-cells-penetrate-the-region.png" alt="Cells colored by signed tumour distance with the per-type distance profiles">
+              </div>
+              <figcaption class="mcap">Signed distance to tumour + per-cell-type distance profiles — CD8 sit inside</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Region: penetration.</strong><ul><li>Yet by signed distance CD8 are often inside the mass, and deeper over time (up to 76% interior).</li><li>Localization only — we did NOT separately profile border-vs-interior CD8 phenotype.</li></ul></aside>
+        </section>
+
+        <!-- 3.4 CD8-TAM interface -->
+        <section>
+          <p class="eyebrow">So where do they sit?</p>
+          <h2>At the <span class="c-amber">CD8–macrophage</span> interface</h2>
+          <div class="cols text-wide">
+            <div>
+              <p>If not next to malignant cells, then next to <strong>myeloid cells</strong>. CD8 × macrophage
+                enrichment z is <strong>strongly positive</strong> — they share immune/myeloid pockets within
+                the mass:</p>
+              <table class="dtable">
+                <tr><th>Time</th><th>Sample</th><th class="n">CD8 × macrophage z</th></tr>
+                <tr><td>T0</td><td>B3</td><td class="n c-green">+41.9</td></tr>
+                <tr><td>T1</td><td>0102917</td><td class="n c-green">+19.1</td></tr>
+                <tr><td>T2</td><td>0102913</td><td class="n c-green">+182.8</td></tr>
+                <tr><td>T3</td><td>0103076 / 0103350</td><td class="n c-green">+78.2 / +60.1</td></tr>
+              </table>
+              <p class="sub">Interface immunity — T cells engage the myeloid stroma, not the tumour cells.</p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <img src="img/CD8-macrophage-interface.png" alt="Niche map showing a CD8 plus TAM interface niche">
+              </div>
+              <figcaption class="mcap">CD8 and macrophages share a niche — the CD8–macrophage interface</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>So where do they sit?</strong><ul><li>Not next to tumour cells — next to myeloid: CD8 × macrophage z strongly positive (+182 at T2).</li><li>Interface immunity — T cells engage the myeloid stroma, not the cancer cells.</li></ul></aside>
+        </section>
+
+        <!-- 3.5 cytotoxic potential -->
+        <section>
+          <p class="eyebrow">Are they armed?</p>
+          <h2>Cytotoxic <span class="c-green">potential</span></h2>
+          <div class="stat a-green"><span class="q">Effector program present</span>
+            <div class="body">CD8 clusters express <strong>GZMA, GZMB, FASLG and IFNG</strong> — a cytotoxic
+              effector signature — together with CCL5 (RANTES) and CXCR3/CXCR6 tissue-homing receptors.</div></div>
+          <div class="caveat"><strong>Caveat (panel).</strong> Perforin (PRF1), granulysin (GNLY) and NKG7 are
+            <em>not</em> on the panel. So this is evidence of cytotoxic <strong>potential / arming</strong> —
+            not direct observation of tumour-cell killing.</div>
+          <aside class="notes"><strong>Are they armed?</strong><ul><li>CD8 carry the effector program: GZMA, GZMB, FASLG, IFNG (+ homing CXCR3/6).</li><li>Caveat: no perforin/granulysin/NKG7 on panel → cytotoxic POTENTIAL, not observed killing.</li></ul></aside>
+        </section>
+
+        <!-- 3.6 exhausted -->
+        <section>
+          <p class="eyebrow">…but held in check</p>
+          <h2>Cytotoxic <span class="c-amber">and</span> exhausted</h2>
+          <div class="cols text-wide">
+            <div>
+              <p>The same CD8 populations co-express <strong>PD-1, CTLA4, LAG3</strong> — and
+                <strong>TCF7</strong>, marking a <strong>stem-like / progenitor-exhausted</strong> state.</p>
+              <p>That TCF7⁺PD-1⁺ phenotype is precisely the subset shown to <strong>self-renew and drive
+                responses to checkpoint blockade</strong><sup class="cite">[5]</sup> — a potentially actionable
+                finding in a tumour with a PD-L1⁺ subclone.</p>
+              <p class="sub">But is that the <em>same cell</em> carrying both programs, or two separate states?
+                We can test it per cell — next.</p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <img src="img/Cytotoxic-and-exhausted.png" alt="DE markers for a CD8 cluster: cytotoxic and exhaustion genes">
+              </div>
+              <figcaption class="mcap">CD8 cluster DE — cytotoxic (GZMA/GZMB/IFNG) alongside exhaustion (PD-1/CTLA4/LAG3/TCF7)</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Armed but held in check.</strong><ul><li>Same CD8 co-express PD-1/CTLA4/LAG3 — and TCF7 (stem-like / progenitor-exhausted).</li><li>TCF7⁺PD-1⁺ is the subset that drives checkpoint-blockade response — actionable given the PD-L1⁺ subclone.</li><li>Same cell, or two states? Tested next.</li></ul></aside>
+        </section>
+
+        <!-- 3.7 per-cell co-expression -->
+        <section>
+          <p class="eyebrow">Down to single cells</p>
+          <h2>Are they the <span class="c-amber">same cells</span>?</h2>
+          <div class="cols text-wide">
+            <div>
+              <p>Within CD8 cells we test whether double-positive cells are <strong>more frequent than chance</strong>
+                (<span class="c-green">+ = same cells</span>, <span class="c-red">− = separate</span>).
+                At T3 (n ≈ 31–37k CD8 cells):</p>
+              <table class="dtable">
+                <tr><th>Pair (T3 CD8)</th><th class="n">log2 OR</th><th class="n">p (Fisher)</th><th>reading</th></tr>
+                <tr><td>GZMA × GZMB <span class="sub">(control)</span></td><td class="n c-green">+1.0</td><td class="n">~10⁻⁹⁰</td><td>effectors co-occur ✓</td></tr>
+                <tr><td>IFNG × LAG3</td><td class="n c-green">+0.9 to +1.0</td><td class="n">~10⁻¹²⁴</td><td><b>same cells</b></td></tr>
+                <tr><td>GZMB × PD-1</td><td class="n c-green">+0.42</td><td class="n">~10⁻¹⁴</td><td><b>same cells</b></td></tr>
+                <tr><td>TCF7 × PD-1</td><td class="n c-red">−0.3</td><td class="n">~5×10⁻⁵</td><td>separate cells</td></tr>
+                <tr><td>TCF7 × GZMB</td><td class="n c-red">−0.7 to −0.9</td><td class="n">≤10⁻¹⁴</td><td>separate cells</td></tr>
+              </table>
+              <p>So cytotoxic and exhaustion programs really do sit <strong>in the same CD8 cells</strong> — a
+                genuine dual state, not just two populations. Meanwhile <strong>TCF7⁺ stem-like cells are a
+                distinct subset</strong><sup class="cite">[5]</sup>: the progenitor pool that <em>feeds</em>,
+                but is not, the effector/exhausted cells.</p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-coexpr"></div></div>
+              <figcaption class="mcap">Per-cell co-occurrence (log2 OR) across timepoints · ● Fisher p&lt;0.05 · ○ n.s.</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Per-cell test at T3 (~31–37 k CD8).</strong><ul><li>Cytotoxic + exhaustion in the SAME cell? Yes — GZMB×PD-1, IFNG×LAG3 co-occur (Fisher p ≪ 0.001). A genuine dual state.</li><li>TCF7⁺ is a SEPARATE subset (negative OR) — the progenitor pool that feeds the effectors.</li><li>Only callable at T3 (too few double-positives earlier); dropout makes raw fractions undercounts → read the enrichment.</li></ul></aside>
+        </section>
+
+        <!-- 3.8 mutation-specific TCRs — what do we know they target -->
+        <section>
+          <p class="eyebrow">What are these T cells chasing?</p>
+          <h2>For some clones, we <span class="c-green">know the target</span></h2>
+          <div class="cols">
+            <div>
+              <p>An external <strong>single-chain trimer (SCT) assay</strong> identified <strong>31 mutation-specific
+                TCRs</strong> (paired α + β CDR3) against five osteosarcoma neoantigens. We matched each against the panel's
+                <strong>31 α + 32 β clonotype probes</strong>, demanding a <strong>perfect match on both chains</strong>.</p>
+              <div class="stat a-green">
+                <span class="q">When both chains match…</span>
+                <div class="body">…the Xenium clone <strong>is</strong> that confirmed TCR — so we know the exact
+                  mutation it recognizes. <strong>11 of 31</strong> confirmed TCRs clear that bar.</div>
+              </div>
+              <ul class="tight">
+                <li><span class="key">DYNC1H1 V314I</span> is best covered — <strong>7 of 9</strong> confirmed clones
+                  are fully on the panel.</li>
+                <li><span class="key">MAP2 868fs</span> 3/15, <span class="key">ASPM G2179R</span> 1/5; the two
+                  singleton neoantigens (<span class="key">TVP23B</span>, <span class="key">PCDH15</span>) aren't
+                  measurable at all.</li>
+              </ul>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-tcrcov"></div></div>
+              <figcaption class="mcap">Confirmed TCRs per neoantigen (bar) and how many are fully measurable in Xenium — both chains on the panel (filled)</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Do we know what the T cells chase?</strong><ul><li>31 mutation-specific TCRs (paired α+β), from a single-chain trimer (SCT) assay, vs the panel's 63 clonotype probes.</li><li>Both chains match → the Xenium clone IS that confirmed TCR → we know its target. 11/31 qualify.</li><li>DYNC1H1 V314I best covered (7/9); MAP2 3/15; ASPM 1/5; two neoantigens unmeasurable. Distinct from the ALT probes → independent, T-cell-side evidence.</li></ul></aside>
+        </section>
+
+        <!-- 3.9 confirmed TCRs over time -->
+        <section>
+          <p class="eyebrow">Do the targeted clones grow?</p>
+          <h2>The T2 surge is the <span class="c-amber">immune flood</span></h2>
+          <p style="margin:0 0 .5em">We track the 11 known-target clones over the timeline. Raw clone density spikes
+            at T2 — but that just tracks the overall T-cell flood (CD3 spikes <strong>~30×</strong> at T2). As a
+            <strong>share of the tracked TCR repertoire</strong> (same-modality, so per-cell capture biases cancel),
+            the <span class="key">DYNC1H1</span> clones climb to <strong>T3</strong> while MAP2/ASPM stay flat.</p>
+          <div class="cols">
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-tcrtime"></div></div>
+              <figcaption class="mcap"><strong>Raw</strong> — clone density / mm²: a sharp <span class="c-teal">T2 peak</span> (= the T-cell flood)</figcaption>
+            </figure>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-tcrshare"></div></div>
+              <figcaption class="mcap"><strong>Share of tracked TCR repertoire</strong>, per neoantigen: <span class="c-teal">DYNC1H1</span> climbs to T3</figcaption>
+            </figure>
+          </div>
+          <div class="callout"><strong>Normalised, the T2 surge disappears</strong> — it was bulk infiltration. The
+            clone-specific signal is <em>relative</em> and late: the confirmed clones <strong>~double their share of
+            the tracked repertoire by T3 (11% → 23%)</strong>, led by <span class="key">DYNC1H1</span>.
+            <span class="sub">Caveats: TCR probes are sparse single molecules; the tracked repertoire is the panel's 63 clones, not the true repertoire; n = 1.</span></div>
+          <aside class="notes"><strong>Do the targeted clones grow? Mind the normalization.</strong><ul><li>Raw clone density spikes at T2 — but CD3 spikes ~30× (a general T-cell flood).</li><li>As a share of the tracked repertoire (capture biases cancel), the spike vanishes; DYNC1H1 climbs to T3 (11% → 23%).</li><li>So the T2 surge is infiltration; the real clone-specific signal is DYNC1H1's late enrichment.</li></ul></aside>
+        </section>
+
+        <!-- 3.10 CD8 vs Treg occupancy -->
+        <section>
+          <p class="eyebrow">CD8 or Treg?</p>
+          <h2>The targeted clones end up in <span class="c-teal">CD8</span>, not Tregs</h2>
+          <p style="margin:0 0 .5em">A neoantigen-specific clone means opposite things depending on its cell: in a
+            CD8 cell it's a cytotoxic attack; in a Treg it's that specificity <strong>co-opted into suppression</strong>.
+            So we ask per timepoint — what % of CD8 cells, and of Tregs, carry a confirmed clone (either chain, ≥1
+            transcript)?</p>
+          <div class="cols">
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-tcrcomp-cd8"></div></div>
+              <figcaption class="mcap"><strong>CD8 cells</strong>: occupancy <span class="c-teal">climbs to ~3.5% by T3</span> (almost all DYNC1H1)</figcaption>
+            </figure>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-tcrcomp-treg"></div></div>
+              <figcaption class="mcap"><strong>Tregs</strong> (only resolved T2–T3): ~3% at T2, <span class="c-amber">falls to 0.7% by T3</span></figcaption>
+            </figure>
+          </div>
+          <div class="callout"><strong>By T3 the anti-tumour clones concentrate in CD8 (3.5%) over Tregs (0.7%)</strong>
+            — a ~5× cytotoxic preference, almost entirely <span class="key">DYNC1H1</span>. Control: baseline
+            detection of <em>any</em> panel clone is similar in both compartments (~22–29%), so this is real, not a
+            detectability gap. <span class="sub">Caveats: no clean Treg cluster before T2 (and none in one T3 sample); either-chain definition; sparse probes; n = 1.</span></div>
+          <aside class="notes"><strong>CD8 (cytotoxic) or Treg (suppression)?</strong><ul><li>% of each compartment carrying a confirmed clone, per timepoint.</li><li>CD8 climbs to ~3.5% by T3 (almost all DYNC1H1); Tregs (only T2–T3) ~3% at T2 → 0.7% at T3.</li><li>By T3 ~5× CD8 preference → predominantly cytotoxic, not co-opted. Control: baseline TCR detection ~equal (~22–29%).</li></ul></aside>
+        </section>
+      </section>
+
+      <!-- ===================== ACT 5 ===================== -->
+      <section>
+        <section class="divider" data-background-color="#121212">
+          <div class="num">5</div><h2>Myeloid, regulatory T cells &amp; stroma</h2>
+          <p class="road">Who controls the door</p>
+          <aside class="notes">Act 5 — the rest of the door: macrophages, regulatory T cells, neutrophils, stroma.</aside>
+        </section>
+
+        <!-- 4.1 TAMs -->
+        <section>
+          <p class="eyebrow">The dominant immune compartment</p>
+          <h2>Macrophages run the place</h2>
+          <div class="cols">
+            <div>
+              <p>Myeloid cells are the <strong>largest immune compartment in every sample</strong> (~25–34% of
+                cells). They are predominantly <strong>M2-like</strong> — CD163, APOE — with a pro-tumour
+                <strong>SPP1⁺</strong> subset and mixed M1 features.</p>
+              <div class="callout">Our panel measures <strong>both CXCL9 and SPP1</strong>, the two poles of the
+                macrophage-polarity axis that predicts outcome across cancers including sarcoma<sup class="cite">[4]</sup>.
+                The SPP1⁺ lean here is the pro-tumour direction.</div>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <img src="img/Macrophages-run-the-place.png" alt="SPP1+ tumour-associated macrophages">
+              </div>
+              <figcaption class="mcap">Tumour-associated macrophages — CD163 / SPP1 / APOE</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Myeloid is the dominant immune compartment.</strong><ul><li>Largest immune compartment every sample (~25–34%).</li><li>M2-lean (CD163/APOE) + a pro-tumour SPP1⁺ subset.</li><li>Panel measures both CXCL9 and SPP1 (the prognostic polarity axis); the lean here is pro-tumour.</li></ul></aside>
+        </section>
+
+        <!-- 4.2 CD8-TAM niche -->
+        <section>
+          <p class="eyebrow">A recurrent microenvironment</p>
+          <h2>The CD8–TAM niche recurs</h2>
+          <div class="cols text-wide">
+            <div>
+              <p>K-means neighbourhoods surface a <strong>recurrent immune-interface niche</strong> dominated by
+                CD8 T cells and macrophages:</p>
+              <table class="dtable">
+                <tr><th>Time</th><th>Sample</th><th class="n">niche immune %</th><th class="n">CD8 %</th></tr>
+                <tr><td>T2</td><td>0102913</td><td class="n">96%</td><td class="n">54%</td></tr>
+                <tr><td>T3</td><td>0103076</td><td class="n">89%</td><td class="n">41%</td></tr>
+                <tr><td>T3</td><td>0103350</td><td class="n">84%</td><td class="n">47%</td></tr>
+              </table>
+              <p class="sub">At T0 the most-immune niche is far less pure (B3 ≈ 32% immune) — the interface
+                sharpens over time.</p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <img src="img/CD8-TAM-niche.png" alt="Niche composition matrix highlighting the CD8 plus TAM niche">
+              </div>
+              <figcaption class="mcap">Neighbourhood-composition matrix — the recurrent CD8 + TAM niche</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>A recurrent microenvironment.</strong><ul><li>K-means neighbourhoods surface a recurrent immune-interface niche: CD8 + macrophage.</li><li>It sharpens over time (~32% immune at T0 → 84–96% by T2/T3).</li></ul></aside>
+        </section>
+
+        <!-- 4.3 Tregs -->
+        <section>
+          <p class="eyebrow">The gatekeepers</p>
+          <h2>Regulatory T cells reach the core</h2>
+          <div class="cols">
+            <div>
+              <p><strong>FOXP3⁺ CTLA4⁺ CCR4⁺ ICOS⁺</strong> suppressive Tregs are prominent — and strikingly so
+                at <strong>T2</strong>:</p>
+              <div class="stat a-purple"><span class="q">T2 (Region_1_0102913)</span>
+                <div class="body"><strong>14,986 Tregs (15.7% of cells)</strong>, sitting <strong>deep inside</strong>
+                  the tumour — median <strong>−45 µm, 91% interior</strong>. Tregs reach the malignant core that
+                  cytotoxic CD8 do not.</div></div>
+              <p class="sub">Tregs also present at T3 (≈ 3% in 0103076). A suppressive cell type penetrating where
+                effectors are excluded is a candidate brake on anti-tumour immunity.</p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <img src="img/Regulatory-T-cells-reach-the-core.png" alt="Treg distance profile / FOXP3 transcripts inside the tumour">
+              </div>
+              <figcaption class="mcap">Regulatory T cells reach the core — FOXP3⁺ Tregs deep inside the tumour</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>The gatekeepers.</strong><ul><li>Suppressive Tregs (FOXP3/CTLA4/CCR4/ICOS), strikingly at T2: 14,986 cells (15.7%), deep interior (−45 µm, 91%).</li><li>Tregs reach the malignant core that cytotoxic CD8 don't — a candidate brake on anti-tumour immunity.</li></ul></aside>
+        </section>
+
+        <!-- 4.4 neutrophils -->
+        <section>
+          <p class="eyebrow">A smaller player</p>
+          <h2>Neutrophils: small, "N2"-like</h2>
+          <div class="cols">
+            <div>
+              <p>Tumour-associated neutrophil clusters are <strong>small</strong> (hundreds to ~900 cells) and
+                carry an <strong>ARG1⁺</strong>, CXCR2/CXCL8 signature — consistent with the immunosuppressive
+                <strong>"N2"</strong> phenotype<sup class="cite">[7]</sup>.</p>
+              <div class="caveat"><strong>Panel-limited.</strong> Neutrophil granule genes (MPO, ELANE, S100A8/9)
+                are absent, so neutrophil calls rest on a few markers — read cautiously.</div>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="media">
+                <img src="img/Neutrophils.png" alt="TAN cluster DE markers (ARG1, CXCR2, CXCL8)">
+              </div>
+              <figcaption class="mcap">Tumour-associated neutrophils — small ARG1⁺ N2-like clusters</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>A smaller, panel-limited player.</strong><ul><li>Small TAN clusters (hundreds–~900), ARG1⁺ CXCR2/CXCL8 = immunosuppressive “N2.”</li><li>No MPO/ELANE/S100A8/9 on panel — read cautiously.</li></ul></aside>
+        </section>
+
+        <!-- 4.5 searching for TLS — the honest null -->
+        <section>
+          <p class="eyebrow">Stroma &amp; organization — searching for TLS</p>
+          <h2>Searching for TLS — a <span class="c-red">cautious null</span></h2>
+          <div class="cols text-wide">
+            <div>
+              <p><strong>Tertiary lymphoid structures</strong> — organized B-cell follicles beside a T-cell zone —
+                predict response to checkpoint blockade in soft-tissue sarcoma<sup class="cite">[6]</sup>, so they're
+                worth looking for. All three TLS chemokines (CXCL13, CCL19, CCL21) are on the panel, so we searched:
+                significant local hotspots (<strong>Getis-Ord Gi*</strong>) of the lymphoid field and of
+                <strong>CXCL13</strong>, linked into compact, dense aggregates holding a real <strong>B-cell</strong>
+                contingent + T cells.</p>
+              <ul class="tight">
+                <li><strong>CXCL13 foci are everywhere</strong> (7–43 per sample) — the chemokine scaffold is real.</li>
+                <li>But <strong>compact B-cell follicles are not detectable</strong> (≈0): the dense lymphoid aggregates
+                  that <em>do</em> exist are <strong>CD8 + macrophage</strong> (the interface from earlier), not TLS.</li>
+              </ul>
+              <div class="caveat"><strong>The honest reason: we can barely see B cells.</strong> The panel carries only
+                <strong>CD19</strong> — no CD20, CD79, MZB1, follicular-DC, HEV, or germinal-center markers. So even if
+                B-cell follicles are present, we would likely miss them. This is <strong>absence of evidence driven by a
+                marker gap</strong>, not evidence of absence.</div>
+              <p class="sub">An open question, and a direct target for a dedicated B-cell / TLS panel or a CD20 / H&amp;E stain.</p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-tls"></div></div>
+              <figcaption class="mcap">CXCL13 foci (the scaffold) are present in every sample; B-cell⁺ candidate TLS sit at ≈0</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Searching for TLS — an honest null.</strong><ul><li>TLS (B-cell follicles) predict ICB response in sarcoma; all 3 TLS chemokines on panel.</li><li>CXCL13 foci everywhere (7–43/sample) but compact B-cell follicles ≈ 0 — the dense aggregates are CD8 + macrophage.</li><li>Reason: only CD19 for B cells (no CD20/CD79/MZB1) → we'd miss follicles. Marker-limited null, not absence. Next: a B-cell/TLS panel or CD20/H&E.</li></ul></aside>
+        </section>
+
+        <!-- 4.6 CXCL13: stroma -> CD8 producer shift -->
+        <section>
+          <p class="eyebrow">Reading the CXCL13 foci</p>
+          <h2>CXCL13: from stromal cue to <span class="c-green">CD8 product</span></h2>
+          <div class="cols text-wide">
+            <div>
+              <p>The CXCL13 foci (40–70/sample, at the tumour border, enriched for CD8) are real — and the cell that
+                <em>makes</em> CXCL13 hands off over time:</p>
+              <ul class="tight">
+                <li><strong>T0–T1:</strong> CXCL13 is <strong>stromal</strong> — tumour + CAF (≈60–77% of transcripts).</li>
+                <li><strong>T2:</strong> a <strong>Treg</strong> burst (~0.49).</li>
+                <li><strong>T3:</strong> the infiltrating <strong>CD8 T cells</strong> make it (~0.63). Uniquely so — the
+                  sibling chemokines (CCL19/CCL21/CXCL12) become <strong>macrophage</strong>-made at T3, not CD8.</li>
+              </ul>
+              <div class="callout"><strong>CXCL13⁺ CD8 T cells</strong> are a dysfunctional/exhausted subset that, in
+                other cancers, help organize TLS and predict checkpoint-blockade response<sup class="cite">[8]</sup>. So
+                the patient builds a <strong>CXCL13⁺ CD8 axis by T3</strong> — the follicle chemokine made by exhausted
+                CD8 — even though no B-cell follicles formed here.</div>
+              <p class="sub">A hypothesis-generating link, at n = 1; per-cell mRNA attribution and per-sample lineage labels apply.</p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-cxprod"></div></div>
+              <figcaption class="mcap">Share of CXCL13 transcripts by producing lineage, by timepoint (lines = per-timepoint means, dots = samples)</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Who makes CXCL13?</strong><ul><li>Foci are real (tumour border, CD8-enriched); the PRODUCER hands off: stromal (T0–T1) → Treg burst (T2) → CD8 (T3, ~63%).</li><li>Control: sibling chemokines go myeloid at T3 — only CXCL13 goes CD8.</li><li>CXCL13⁺ CD8 = exhausted, TLS-organizing, ICB-associated. A CXCL13⁺ CD8 axis builds by T3, without follicles. Hypothesis at n = 1.</li></ul></aside>
+        </section>
+      </section>
+
+      <!-- ===================== ACT 6 ===================== -->
+      <section>
+        <section class="divider" data-background-color="#121212">
+          <div class="num">6</div><h2>Over time — T0 → T3</h2>
+          <p class="road">Trends, framed as observations</p>
+          <aside class="notes">Act 6 — what changes over T0→T3, framed as observations, not statistics.</aside>
+        </section>
+
+        <!-- 5.1 how we compare -->
+        <section>
+          <p class="eyebrow">Before the trends</p>
+          <h2>How (and how cautiously) we compare</h2>
+          <ul class="tight">
+            <li><strong>Gene-set coherence</strong> uses an identical set list across samples → directly comparable
+              (the cleanest temporal metric).</li>
+            <li><strong>Distance bins</strong> are identical (25 µm) → comparable.</li>
+            <li><strong>Cell-type labels</strong> are per-sample → harmonized by lineage keyword; treat as directional.</li>
+          </ul>
+          <div class="caveat"><strong>n = 1 patient.</strong> Every "trend" below is a single trajectory — a
+            hypothesis to test in a cohort, not a statistical result. B3 and C3 (both T0) bracket the
+            within-timepoint spread.</div>
+          <aside class="notes"><strong>Ground rules for the trends.</strong><ul><li>Gene-set coherence = identical set list across samples → the cleanest temporal metric.</li><li>Distance bins identical (25 µm). Cell-type labels per-sample → harmonized, directional.</li><li>n = 1 → every trend is one trajectory; B3/C3 bracket the T0 spread.</li></ul></aside>
+        </section>
+
+        <!-- 5.1b method: gene-set coherence -->
+        <section>
+          <p class="eyebrow">Method — gene-set spatial coherence</p>
+          <h2>Do a program's genes light up <span class="c-green">together</span>?</h2>
+          <div class="cols">
+            <div>
+              <p>For one gene set (e.g. <strong>IFN-γ response</strong>, 32 measured genes):</p>
+              <ul class="tight">
+                <li>Lay a <strong>100 µm quadrat grid</strong> over the slide — each gene becomes a vector of
+                  per-quadrat transcript counts.</li>
+                <li>Take the <strong>Spearman correlation of every gene pair</strong> across quadrats — do gene A and
+                  gene B light up the <em>same</em> regions?</li>
+                <li><strong>Coherence = the mean of those pairwise correlations.</strong></li>
+              </ul>
+              <div class="stat a-teal">
+                <span class="q">What it captures</span>
+                <div class="body">Spatial <strong>co-localization</strong> of a program's genes — <em>not</em> their
+                  expression level. High → the genes concentrate in shared neighbourhoods; ≈0 → scattered independently.</div>
+              </div>
+            </div>
+            <div>
+              <div class="stat a-green">
+                <span class="q">Why a z-score, not the raw number</span>
+                <div class="body">Compare the set's coherence to a <strong>null of random panel-gene sets of the same
+                  size</strong> (thousands of random 32-gene draws):
+                  <span class="key">z = (observed − null mean) / null SD</span>. This controls for set size and the
+                  slide's overall structure.</div>
+              </div>
+              <div class="callout"><strong>Worked example.</strong> IFN-γ response — coherence ≈ 0.52,
+                <strong>z ≈ 5.4</strong> in a T3 sample: its 32 genes co-localize ~5 SD more tightly than a random
+                32-gene set. The next slide plots the <strong>mean z across the 8 immune sets</strong>, per sample.</div>
+              <p class="sub">Normalized to random genes in the <em>same</em> tissue, the z isolates immune organization
+                from whatever global structure a given section happens to have.</p>
+            </div>
+          </div>
+          <aside class="notes"><strong>Coherence, explained.</strong><ul><li>Do a program's genes light up in the SAME places (not how highly)?</li><li>Grid the slide (100 µm) → correlate every gene pair across squares → average = coherence.</li><li>z = SD above random same-size gene sets (controls for set size + global tissue structure).</li><li>Note: z rises monotonically; raw coherence peaks at T2 (globally blocky) — the z divides that out.</li></ul></aside>
+        </section>
+
+        <!-- 5.2 coherence trend -->
+        <section>
+          <p class="eyebrow">Trend 1 (most defensible)</p>
+          <h2>Immune programs get <span class="c-green">more organized</span></h2>
+          <div class="cols">
+            <div>
+              <p>Mean spatial coherence of Hallmark immune gene sets <strong>rises monotonically</strong>
+                (z 1.9/1.8 → 2.9 → 3.0 → 4.0/3.7, T0→T3). It is measured over <strong>only the panel genes</strong> in
+                each set — a thin slice of each 90–960-gene program:</p>
+              <table class="dtable">
+                <tr><th>Hallmark immune set</th><th class="n">on panel</th></tr>
+                <tr><td>Inflammatory response</td><td class="n">98 / 963</td></tr>
+                <tr><td>Allograft rejection</td><td class="n">54 / 200</td></tr>
+                <tr><td>IFN-γ response</td><td class="n">32 / 200</td></tr>
+                <tr><td>TNF-α via NF-κB</td><td class="n">26 / 200</td></tr>
+                <tr><td>IL6 · JAK · STAT3</td><td class="n">24 / 91</td></tr>
+                <tr><td>IL2 · STAT5</td><td class="n">21 / 200</td></tr>
+                <tr><td>Complement</td><td class="n">14 / 200</td></tr>
+                <tr><td>IFN-α response</td><td class="n">10 / 97</td></tr>
+              </table>
+              <p class="sub">≈141 unique immune genes across all eight. <strong>IFN-γ response</strong> (32 measured):
+                CXCL9/10/11, GZMA, FAS, CD274, IDO1, STAT1/2/3/4, IRF1/2/4/5/8, JAK2, IFIT2/3, CCL2/5/7, IL4R, IL6, IL15,
+                IL15RA, CD38, CD86, HLA-DQA1, HIF1A, KLRK1, RNF213.</p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox" style="margin-bottom:6px;"><div id="chart-coherence"></div></div>
+              <figcaption class="mcap" style="margin:0 0 8px;">Mean across the 8 immune sets (panel genes only; dots = samples)</figcaption>
+              <div class="chartbox"><div id="chart-coherence-sets"></div></div>
+              <figcaption class="mcap">Each set as its own line — the aggregate is their mean</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Trend 1 — the most defensible claim.</strong><ul><li>Mean coherence z of 8 Hallmark immune sets rises monotonically T0→T3 (1.9 → 4.0).</li><li>Measured over only the panel's slice of each set (~141 unique immune genes).</li></ul></aside>
+        </section>
+
+        <!-- 5.2b coherence trend — the mirror image (osteogenic) -->
+        <section>
+          <p class="eyebrow">Trend 1 — the mirror image</p>
+          <h2>…while the <span class="c-amber">bone-forming program</span> disperses</h2>
+          <div class="cols text-wide">
+            <div>
+              <p>Run the <em>same</em> coherence metric over the tumour's own programs and it goes the other way — the
+                <strong>osteogenic / bone-matrix sets lose</strong> spatial coherence as immune organization rises:</p>
+              <ul class="tight">
+                <li>Skeletal-system development 4.9→2.7, ossification 5.1→3.3, osteoblast differentiation, cartilage
+                  development, bone mineralization — all decline. <strong>EMT</strong> and cell-cycle programs dissipate too.</li>
+                <li>These sets are built from the very genes that <strong>define the malignant clusters</strong> —
+                  <span class="key">RUNX2</span>, <span class="key">SP7</span>, <span class="key">IBSP</span>,
+                  <span class="key">COL1A1</span>, <span class="key">BGLAP</span>, <span class="key">ALPL</span>,
+                  <span class="key">BMP2/4/7</span>, <span class="key">SATB2</span>.</li>
+              </ul>
+              <div class="callout"><strong>Not a normalization artifact.</strong> Immune programs rise and osteogenic
+                programs fall <em>in the same samples</em>, against the same random-gene null — so the divergence is real
+                signal, not the baseline shifting. The tumour's organized bone-forming architecture gives way to an
+                increasingly organized immune compartment.</div>
+              <div class="caveat">Interpretation is open at n = 1 — treatment-driven disruption of the osteoid, tumour
+                de-differentiation, or immune remodelling could all contribute. An observation, not a mechanism.</div>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-osteo"></div></div>
+              <figcaption class="mcap">Osteogenic gene-set coherence z by timepoint; dashed = the rising immune mean, for contrast</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Trend 1, mirror image.</strong><ul><li>Same metric on the tumour's own programs goes the OTHER way: osteogenic/bone sets lose coherence (5.1 → 3.3).</li><li>These are the genes that define “malignant” — the tumour's identity program disperses in space.</li><li>Immune up + osteogenic down in the same samples vs the same null = real divergence. n = 1 — observation, not mechanism.</li></ul></aside>
+        </section>
+
+        <!-- 5.3 T-cell trend -->
+        <section>
+          <p class="eyebrow">Trend 2</p>
+          <h2>T cells accumulate and move <span class="c-teal">inward</span></h2>
+          <div class="cols">
+            <div>
+              <p>The CD8 share of cells climbs sharply, and they sit increasingly interior:</p>
+              <table class="dtable">
+                <tr><th>Time</th><th class="n">CD8 % of cells</th><th class="n">% interior</th></tr>
+                <tr><td>T0</td><td class="n">~2%</td><td class="n">~21%</td></tr>
+                <tr><td>T2</td><td class="n">8%</td><td class="n">16%</td></tr>
+                <tr><td>T3</td><td class="n">~26%</td><td class="n">~75%</td></tr>
+              </table>
+              <div class="caveat" style="margin-top:0.4em;">…but exclusion from malignant <em>contact</em> persists
+                throughout (Act 4). More T cells, deeper — still not touching tumour cells.</div>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-cd8"></div></div>
+              <figcaption class="mcap">CD8 share of cells and CD8 % interior, by timepoint</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Trend 2 — T cells accumulate and move in.</strong><ul><li>CD8 share ~2% → ~26%; % interior ~21% → ~75%.</li><li>But exclusion from malignant CONTACT persists — more T cells, deeper, still not touching tumour cells.</li></ul></aside>
+        </section>
+
+        <!-- 5.4 Treg/TAM dynamics -->
+        <section>
+          <p class="eyebrow">Trend 3</p>
+          <h2>Treg &amp; SPP1⁺ TAM dynamics</h2>
+          <div class="cols">
+            <div>
+              <ul class="tight">
+                <li><strong>Treg burden peaks at T2</strong> (15.7%, deep interior) — the most suppressed timepoint.</li>
+                <li>The <strong>CD8–SPP1⁺TAM interface is strongest at T2</strong> (enrichment z +183), then remains
+                  prominent at T3.</li>
+                <li>By T3, CD8 are abundant and interior, but engage myeloid cells rather than tumour.</li>
+              </ul>
+              <p class="sub">Read as harmonized fractions across single samples — directional.</p>
+            </div>
+            <figure class="v" style="margin:0; min-width:0;">
+              <div class="chartbox"><div id="chart-tregtam"></div></div>
+              <figcaption class="mcap">Treg % and TAM % (left) · CD8×TAM enrichment z (right), by timepoint</figcaption>
+            </figure>
+          </div>
+          <aside class="notes"><strong>Trend 3 — the suppressive axis.</strong><ul><li>Treg burden peaks at T2 (15.7%, deep) — the most suppressed timepoint.</li><li>CD8–SPP1⁺TAM interface strongest at T2 (z +183), prominent at T3.</li><li>By T3 CD8 abundant + interior but engage myeloid, not tumour. Directional (single samples).</li></ul></aside>
+        </section>
+
+        <!-- 5.5 model -->
+        <section>
+          <p class="eyebrow">Synthesis (hypothesis)</p>
+          <h2>A working model</h2>
+          <div class="callout" style="font-size:0.82em;">
+            Across this patient's course, the tumour stays <strong>excluded at the malignant-cell border</strong>
+            throughout. Early on it is <strong>myeloid-dominated and quiet</strong>; over time
+            <strong>CD8 T cells accumulate and penetrate the tumour mass</strong>, but engage the
+            <strong>SPP1⁺ macrophage stroma at interfaces</strong> rather than the cancer cells — while
+            <strong>Tregs reach the core</strong> and immune programs become <strong>increasingly organized</strong>.
+            A cytotoxic-but-checkpointed, interface-confined response held off by myeloid + Treg gatekeeping.
+          </div>
+          <p class="sub">A model to test — not a conclusion. Directly actionable hypotheses: PD-1/CTLA4 blockade
+            (TCF7⁺ progenitor CD8 present), SPP1/myeloid targeting, and a TLS search.</p>
+          <aside class="notes"><strong>Synthesis — a model to test, not a conclusion.</strong><ul><li>Excluded at the malignant border throughout; early myeloid-dominated and quiet.</li><li>Over time CD8 accumulate + penetrate but engage SPP1⁺ macrophage interfaces, not cancer cells; Tregs reach the core; immune organization rises.</li><li>A cytotoxic-but-checkpointed, interface-confined response held off by myeloid + Treg gatekeeping.</li><li>Actionable: PD-1/CTLA4 blockade, SPP1/myeloid targeting, a TLS search.</li></ul></aside>
+        </section>
+      </section>
+
+      <!-- ===================== ACT 7 ===================== -->
+      <section>
+        <section class="divider" data-background-color="#121212">
+          <div class="num">7</div><h2>Limits &amp; references</h2>
+          <aside class="notes">Act 7 — what's supported, what isn't, and the references.</aside>
+        </section>
+
+        <!-- 6.1 limits -->
+        <section>
+          <p class="eyebrow">Honesty check</p>
+          <h2>What we can and can't conclude</h2>
+          <div class="cols">
+            <div>
+              <p class="c-green" style="font-weight:700;">Supported</p>
+              <ul class="tight">
+                <li>cell-type maps &amp; the malignant/stromal/immune cast</li>
+                <li>T-cell exclusion from malignant <em>contact</em></li>
+                <li>region penetration &amp; the CD8–TAM interface</li>
+                <li>cytotoxic + exhausted CD8, co-expressed <em>per cell</em> at T3 (Fisher-significant); TCF7⁺ a separate subset</li>
+                <li>SPP1⁺ TAM lean; deep Treg infiltration (T2)</li>
+                <li>rising immune spatial organization</li>
+              </ul>
+            </div>
+            <div>
+              <p class="c-amber" style="font-weight:700;">Not (yet) supported</p>
+              <ul class="tight">
+                <li>causality or temporal statistics (<strong>n = 1</strong>)</li>
+                <li>actual tumour-cell killing (no perforin/granulysin)</li>
+                <li>single-cell co-occurrence <em>before</em> T3 (too few double-positive cells)</li>
+                <li>border-vs-interior CD8 phenotype difference</li>
+                <li>neutrophil detail (panel-limited)</li>
+                <li>confirmed TLS (needs B-cell/CXCL13 foci)</li>
+              </ul>
+            </div>
+          </div>
+          <aside class="notes"><strong>Be explicit about the line.</strong><ul><li>Supported: the cell-type cast; T-cell exclusion from contact; region penetration + CD8–TAM interface; per-cell cytotoxic+exhausted CD8 at T3; SPP1⁺ TAM lean; deep Treg; rising immune organization.</li><li>Not (yet): causality / temporal stats (n=1); actual killing (no perforin); co-occurrence before T3; border-vs-interior phenotype; neutrophil detail; confirmed TLS.</li></ul></aside>
+        </section>
+
+        <!-- 6.2 references -->
+        <section>
+          <p class="eyebrow">References</p>
+          <h2>Further reading</h2>
+          <ol class="refs">
+            <li>Janesick A, et al. High resolution mapping of the tumor microenvironment using integrated single-cell, spatial and in situ analysis. <em>Nat Commun</em> 14, 8353 (2023). <a href="https://www.nature.com/articles/s41467-023-43458-x">10.1038/s41467-023-43458-x</a></li>
+            <li>Joyce JA, Fearon DT. T cell exclusion, immune privilege, and the tumor microenvironment. <em>Science</em> 348, 74–80 (2015). <a href="https://www.science.org/doi/10.1126/science.aaa6204">10.1126/science.aaa6204</a></li>
+            <li>Zhou Y, et al. Single-cell RNA landscape of intratumoral heterogeneity and immunosuppressive microenvironment in advanced osteosarcoma. <em>Nat Commun</em> 11, 6322 (2020). <a href="https://www.nature.com/articles/s41467-020-20059-6">10.1038/s41467-020-20059-6</a></li>
+            <li>Bill R, et al. CXCL9:SPP1 macrophage polarity identifies a network of cellular programs that control human cancers. <em>Science</em> 381, 515–524 (2023). <a href="https://www.science.org/doi/10.1126/science.ade2292">10.1126/science.ade2292</a></li>
+            <li>Siddiqui I, et al. Intratumoral Tcf1⁺PD-1⁺CD8⁺ T cells with stem-like properties promote tumor control in response to vaccination and checkpoint blockade immunotherapy. <em>Immunity</em> 50, 195–211 (2019). <a href="https://www.cell.com/immunity/fulltext/S1074-7613(18)30569-7">10.1016/j.immuni.2018.12.021</a></li>
+            <li>Petitprez F, et al. B cells and tertiary lymphoid structures promote immunotherapy response. <em>Nature</em> 577, 556–560 (2020). <a href="https://www.nature.com/articles/s41586-019-1922-8">10.1038/s41586-019-1922-8</a></li>
+            <li>Fridlender ZG, et al. Polarization of tumor-associated neutrophil phenotype by TGF-β: "N1" versus "N2" TAN. <em>Cancer Cell</em> 16, 183–194 (2009). <a href="https://www.cell.com/cancer-cell/fulltext/S1535-6108(09)00215-3">10.1016/j.ccr.2009.06.017</a></li>
+            <li>Wang J, et al. Intratumoral CXCL13⁺ CD160⁺ CD8⁺ T cells promote the formation of tertiary lymphoid structures to enhance the efficacy of immunotherapy in advanced gastric cancer. <em>J Immunother Cancer</em> 12, e009603 (2024). <a href="https://jitc.bmj.com/content/12/9/e009603">10.1136/jitc-2024-009603</a></li>
+            <li>Conley AP, et al. BETA prime: a first-in-man phase 1 study of AdAPT-001, an armed oncolytic adenovirus for solid tumors. <em>Cancer Gene Therapy</em> 31, 517–526 (2024). <a href="https://www.nature.com/articles/s41417-023-00720-0">10.1038/s41417-023-00720-0</a></li>
+          </ol>
+          <p class="sub" style="margin-top:0.8em;"><a href="../intro/">← Part 1: the browser tour</a> &nbsp;·&nbsp;
+            <a href="../">open the browser →</a></p>
+          <aside class="notes"><strong>References.</strong><ul><li>9 references, all verified against the web (title/journal/DOI); several confirmed in full text.</li><li>Xenium [1] · exclusion [2] · osteosarcoma scRNA [3] · CXCL9:SPP1 [4] · TCF7⁺ [5] · TLS in sarcoma [6] · N2 TAN [7] · CXCL13⁺CD8 [8] · AdAPT-001 [9].</li></ul></aside>
+        </section>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+    Reveal.initialize({
+      hash:true, slideNumber:'c/t', progress:true, controls:true, controlsLayout:'bottom-right',
+      transition:'slide', transitionSpeed:'fast', backgroundTransition:'fade',
+      navigationMode:'linear',  // step through all slides in one linear order (acts are vertical
+                                // stacks; 'linear' makes back/forward symmetric — see git log)
+      width:1280, height:760, margin:0.055, plugins:[ RevealNotes ],
+    });
+  </script>
+
+  <!-- Trend charts (d3). Data is inlined from scripts/analysis-deck/out/metrics.json;
+       re-run aggregate.py and update these literals if the data changes. -->
+  <script>
+  (function () {
+    let mutScale = 'linear'; // validation scatter axis scale ('log' | 'linear'), toggled in-slide
+    const COL = { green:'#5cc46a', amber:'#e0b03b', purple:'#c08cf0', teal:'#4fb6c4',
+                  blue:'#7aa2ff', orange:'#e0883b', red:'#e64a3c', grey:'#8a8a8a' };
+    const TP = ['T0', 'T1', 'T2', 'T3'];
+    // One row per Xenium sample (two at T0, two at T3). null = not resolvable.
+    const S = [
+      { id:'B3',  tp:'T0', coh:1.87, cd8:0.023, cd8int:0.21, treg:0.00,  tam:0.16, cd8tam:41.9 },
+      { id:'C3',  tp:'T0', coh:1.81, cd8:null,  cd8int:null, treg:0.00,  tam:0.26, cd8tam:null },
+      { id:'T1',  tp:'T1', coh:2.89, cd8:0.020, cd8int:0.63, treg:0.00,  tam:0.25, cd8tam:19.1 },
+      { id:'T2',  tp:'T2', coh:3.02, cd8:0.081, cd8int:0.16, treg:0.157, tam:0.27, cd8tam:182.8 },
+      { id:'T3a', tp:'T3', coh:3.95, cd8:0.261, cd8int:0.76, treg:0.030, tam:0.28, cd8tam:78.2 },
+      { id:'T3b', tp:'T3', coh:3.67, cd8:0.264, cd8int:0.75, treg:0.00,  tam:0.26, cd8tam:60.1 },
+    ];
+    // Co-expression log2 OR per sample; sig=1 if Fisher p<0.05.
+    const PAIRS = [
+      { name:'GZMB×PD-1', color:COL.green, v:[[-1.14,0],[0.70,0],[-0.03,0],[-0.06,0],[0.42,1],[0.45,1]] },
+      { name:'IFNG×LAG3', color:COL.teal,  v:[[0.92,0],[1.28,1],[0.61,0],[0.99,1],[0.94,1],[1.05,1]] },
+      { name:'TCF7×PD-1', color:COL.red,   v:[[-0.16,0],[-0.15,0],[-0.09,0],[-0.43,1],[-0.32,1],[-0.30,1]] },
+      { name:'TCF7×GZMB', color:COL.orange, v:[[-0.16,0],[-0.90,1],[-1.33,1],[-0.45,1],[-0.71,1],[-0.89,1]] },
+      { name:'GZMA×GZMB (ctrl)', color:COL.grey, v:[[1.53,1],[1.48,1],[1.44,1],[0.71,1],[0.99,1],[1.05,1]] },
+    ];
+    // Panel composition — single-bucket partition of all 428 probes, ordered
+    // immune (desc) then mutation/tumour/stroma/other. From metrics.json
+    // .panel.categories (210/428 = 49% immune); re-sync if the data changes.
+    const PANEL = [
+      { n:63, g:'immune', s:'TCR clonotypes' },
+      { n:46, g:'immune', s:'Chemokines & rec.' },
+      { n:26, g:'immune', s:'Cytokines & rec.' },
+      { n:22, g:'immune', s:'Myeloid / DC' },
+      { n:16, g:'immune', s:'Lymphocyte mk.' },
+      { n:16, g:'immune', s:'Immune signaling' },
+      { n:14, g:'immune', s:'Checkpoint/co-stim' },
+      { n:7,  g:'immune', s:'Cancer-testis ag.' },
+      { n:66, g:'mutation', s:'Allele WT/ALT' },
+      { n:61, g:'tumour', s:'Onco / suppressor' },
+      { n:37, g:'stroma', s:'Bone / matrix' },
+      { n:54, g:'other', s:'Other' },
+    ];
+
+    // Per-set coherence z across samples (8 Hallmark immune sets), S order
+    // [B3, C3, T1, T2, T3a, T3b]. From each dataset's genesets.json .coherenceZ;
+    // their per-timepoint mean is the aggregate line. Ordered by T3 z (desc).
+    const COHSETS = [
+      { g:'IFN-γ',         color:COL.green,  v:[2.86, 2.98, 3.54, 4.24, 5.42, 4.97] },
+      { g:'Allograft',     color:COL.red,    v:[0.22, 0.27, 1.95, 2.32, 5.13, 4.77] },
+      { g:'Inflammatory',  color:COL.orange, v:[0.94, 0.64, 4.41, 2.66, 4.18, 3.85] },
+      { g:'IL6·JAK·STAT3', color:COL.teal,   v:[2.41, 2.33, 3.01, 3.37, 3.80, 3.49] },
+      { g:'IL2·STAT5',     color:COL.purple, v:[1.81, 1.85, 2.41, 3.07, 3.55, 3.48] },
+      { g:'IFN-α',         color:COL.blue,   v:[3.02, 3.05, 2.60, 2.72, 3.27, 3.06] },
+      { g:'TNF-α',         color:COL.amber,  v:[1.56, 1.33, 2.82, 3.23, 3.11, 2.87] },
+      { g:'Complement',    color:COL.grey,   v:[2.13, 2.02, 2.35, 2.53, 3.13, 2.84] },
+    ];
+    // Osteogenic / bone-matrix (+ EMT) gene sets whose coherence z DECREASES over
+    // time — the mirror image of the immune trend. Same S order; from genesets.json.
+    const OSTEOSETS = [
+      { g:'Ossification',        color:COL.amber,  v:[5.18, 4.96, 3.95, 3.92, 3.34, 3.23] },
+      { g:'Skeletal system dev', color:COL.orange, v:[5.37, 4.50, 3.48, 3.50, 2.84, 2.66] },
+      { g:'Osteoblast diff',     color:COL.red,    v:[3.84, 3.84, 3.09, 3.01, 2.45, 2.38] },
+      { g:'Cartilage dev',       color:COL.teal,   v:[4.64, 3.84, 2.99, 3.07, 2.44, 2.24] },
+      { g:'EMT',                 color:COL.blue,   v:[3.91, 2.92, 2.65, 2.42, 2.23, 1.72] },
+      { g:'Bone mineralization', color:COL.purple, v:[2.99, 3.21, 2.29, 2.53, 1.71, 1.69] },
+    ];
+    // TLS search per sample — from each dataset's tls.json .summary (B-cell-
+    // requiring definition). foci = CXCL13-only hotspots (the scaffold, common);
+    // cand = compact aggregates with a real B-cell contingent + T cells (≈0).
+    const TLS = [
+      { id:'B3',  cand:0, foci:23 },
+      { id:'C3',  cand:0, foci:33 },
+      { id:'T1',  cand:0, foci:7 },
+      { id:'T2',  cand:2, foci:32 },
+      { id:'T3a', cand:0, foci:43 },
+      { id:'T3b', cand:0, foci:33 },
+    ];
+    // Share of CXCL13 transcripts by producing lineage (%), S order — from
+    // metrics.json .foci.cxcl13_producer_trend. The stroma→CD8 handoff.
+    const CXPROD = [
+      { g:'CD8 T cells',  color:COL.green,  v:[12, 0, 1, 20, 61, 63] },
+      { g:'tumour + CAF', color:COL.orange, v:[68, 58, 77, 15, 7, 12] },
+      { g:'Treg',         color:COL.purple, v:[0, 0, 0, 49, 5, 0] },
+    ];
+    // AdAPT-001 (EpicentRx) oncolytic-virus probes — signal-to-control per sample,
+    // S order [B3, C3, T1, T2, T3a, T3b]. From metrics.json .construct.longitudinal
+    // (s2cRight/s2cRef). 1.0 = negative-control background; 7 IT doses given after T1.
+    const CONSTRUCT = [
+      { g:'construct', color:COL.red,  v:[0.26, 0.07, 0.22, 13.98, 743.28, 524.09] },
+      { g:'reference', color:COL.grey, v:[0.38, 0.23, 1.09, 1.21, 10.23, 6.75] },
+    ];
+    // SCT-assay (single-chain trimer) mutation-specific TCRs vs Xenium clonotype probes — from
+    // metrics.json .tcr. conf = total confirmed; both = both chains on the panel.
+    const TCRCOV = [
+      { m:'DYNC1H1 V314I', conf:9,  both:7, color:COL.teal },
+      { m:'MAP2 868fs',    conf:15, both:3, color:COL.orange },
+      { m:'ASPM G2179R',   conf:5,  both:1, color:COL.purple },
+      { m:'PCDH15 R678M',  conf:1,  both:0, color:COL.grey },
+      { m:'TVP23B K175M',  conf:1,  both:0, color:COL.grey },
+    ];
+    // Confirmed-clone density/mm² per neoantigen over time, S order [B3,C3,T1,T2,
+    // T3a,T3b]. From metrics.json .tcr.overTime.perDataset.
+    const TCRTIME = [
+      { g:'DYNC1H1', color:COL.teal,   v:[6.12, 12.16, 8.33, 88.97, 21.85, 18.76] },
+      { g:'MAP2',    color:COL.orange, v:[1.62, 3.28,  3.48, 14.84, 1.54,  1.16] },
+      { g:'ASPM',    color:COL.purple, v:[6.25, 4.57,  5.04, 14.12, 13.33, 7.48] },
+    ];
+    // Same clones, normalized per neoantigen as a share of the tracked TCR
+    // repertoire (mutation density / all-63-TCR density, %), S order. DYNC1H1
+    // climbs to T3. From metrics.json .tcr.overTime.perDataset.*_share.
+    const TCRSHARE = [
+      { g:'DYNC1H1', color:COL.teal,   v:[5.85, 6.17, 5.60, 9.36, 14.81, 14.16] },
+      { g:'MAP2',    color:COL.orange, v:[1.55, 1.67, 2.34, 1.56, 1.05,  0.88] },
+      { g:'ASPM',    color:COL.purple, v:[5.97, 2.32, 3.39, 1.49, 9.03,  5.64] },
+    ];
+    // Per-cell occupancy: % of CD8 / Treg cells carrying each confirmed clone (≥1
+    // transcript, either chain), S order. From metrics.json .tcr.compartment.
+    // null = lineage not resolved in that sample (no clean cluster).
+    const TCRCD8 = [
+      { g:'DYNC1H1', color:COL.teal,   v:[0.091, null, 0.168, 2.157, 3.414, 3.135] },
+      { g:'MAP2',    color:COL.orange, v:[0.0,   null, 0.0,   0.130, 0.087, 0.146] },
+      { g:'ASPM',    color:COL.purple, v:[0.091, null, 0.168, 0.377, 0.123, 0.118] },
+    ];
+    const TCRTREG = [
+      { g:'DYNC1H1', color:COL.teal,   v:[null, null, null, 2.869, 0.556, null] },
+      { g:'MAP2',    color:COL.orange, v:[null, null, null, 0.187, 0.048, null] },
+      { g:'ASPM',    color:COL.purple, v:[null, null, null, 0.307, 0.121, null] },
+    ];
+
+    // --- Mutation (WT/ALT allele) analysis — from metrics.json .mutations.
+    // re-run aggregate.py and update these if the data changes.
+    const MUTCLS = { 'somatic-specific':COL.green, 'sample-variable':COL.amber,
+                     'not-specific':COL.red, 'low-signal':'#6a6a6a' };
+    // per-variant mean pseudo-VAF in tumour (vt) vs rest (vr), cluster def; sc =
+    // mean ALT signal-to-control (gate at 2 → "low-signal", at/near noise floor).
+    const MUTVAL = [
+      {g:'ZNF436',mt:'snv',vt:0.936,vr:0.436,sc:2.94,c:'somatic-specific',loh:1},
+      {g:'DYNC1H1',mt:'snv',vt:0.896,vr:0.724,sc:27.0,c:'somatic-specific'},
+      {g:'SPG11',mt:'snv',vt:0.556,vr:0.315,sc:4.26,c:'somatic-specific'},
+      {g:'TECPR1',mt:'del',vt:0.382,vr:0.131,sc:2.43,c:'somatic-specific'},
+      {g:'SLC25A12',mt:'snv',vt:0.287,vr:0.181,sc:5.41,c:'somatic-specific'},
+      {g:'H1-2',mt:'del',vt:0.189,vr:0.12,sc:169.5,c:'somatic-specific'},
+      {g:'ASPM',mt:'snv',vt:0.161,vr:0.126,sc:5.0,c:'somatic-specific'},
+      {g:'EXOC4',mt:'snv',vt:0.132,vr:0.056,sc:4.33,c:'somatic-specific'},
+      {g:'ATXN2L',mt:'snv',vt:0.115,vr:0.029,sc:5.56,c:'somatic-specific'},
+      {g:'NME1',mt:'snv',vt:0.804,vr:0.75,sc:10.4,c:'sample-variable'},
+      {g:'ROBO2',mt:'snv',vt:0.729,vr:0.7,sc:11.9,c:'sample-variable'},
+      {g:'PPP1R3F',mt:'snv',vt:0.425,vr:0.312,sc:6.1,c:'sample-variable'},
+      {g:'ANKRD17',mt:'snv',vt:0.271,vr:0.209,sc:17.8,c:'sample-variable'},
+      {g:'KIF1C',mt:'snv',vt:0.193,vr:0.138,sc:9.66,c:'sample-variable'},
+      {g:'SMC5',mt:'snv',vt:0.165,vr:0.126,sc:11.4,c:'sample-variable'},
+      {g:'CDC40',mt:'snv',vt:0.157,vr:0.086,sc:2.91,c:'sample-variable'},
+      {g:'KDM3B',mt:'snv',vt:0.136,vr:0.079,sc:3.41,c:'sample-variable'},
+      {g:'RNF213',mt:'del',vt:0.115,vr:0.035,sc:13.1,c:'sample-variable'},
+      {g:'PRRC2C',mt:'snv',vt:0.114,vr:0.053,sc:11.5,c:'sample-variable'},
+      {g:'VPS72',mt:'snv',vt:0.066,vr:0.043,sc:4.51,c:'sample-variable'},
+      {g:'ATRX',mt:'snv',vt:0.385,vr:0.367,sc:32.6,c:'not-specific'},
+      {g:'BMP1',mt:'snv',vt:0.3,vr:0.23,sc:12.4,c:'not-specific'},
+      {g:'EPG5',mt:'snv',vt:0.098,vr:0.076,sc:3.65,c:'not-specific'},
+      {g:'MAP2',mt:'ins',vt:0.933,vr:0.566,sc:1.25,c:'low-signal'},
+      {g:'BTD',mt:'snv',vt:0.544,vr:0.376,sc:1.26,c:'low-signal'},
+      {g:'ZNF674',mt:'snv',vt:0.335,vr:0.241,sc:1.08,c:'low-signal'},
+      {g:'ABI3BP',mt:'snv',vt:0.328,vr:0.154,sc:1.5,c:'low-signal'},
+      {g:'ZNF764',mt:'snv',vt:0.232,vr:0.147,sc:1.25,c:'low-signal'},
+      {g:'VPS13B',mt:'snv',vt:0.226,vr:0.158,sc:1.08,c:'low-signal'},
+      {g:'NET1',mt:'snv',vt:0.113,vr:0.055,sc:1.58,c:'low-signal'},
+      {g:'WWC1',mt:'snv',vt:0.103,vr:0.149,sc:1.28,c:'low-signal'},
+      {g:'PIP5K1A',mt:'del',vt:0.068,vr:0.029,sc:1.38,c:'low-signal'},
+      {g:'CUL9',mt:'snv',vt:0.007,vr:0.009,sc:0.37,c:'low-signal'},
+    ];
+    // zygosity among expressing cells (pooled, 6 samples): % WT-only / ALT-only / both.
+    const MUTZYG = [
+      { g:'DYNC1H1', wo:15.1, ao:83.8, bo:1.1 },
+      { g:'ZNF436',  wo:34.0, ao:66.0, bo:0.1 },
+      { g:'SLC25A12',wo:75.5, ao:23.2, bo:1.3 },
+      { g:'H1-2',    wo:69.6, ao:9.4,  bo:21.0 },
+      { g:'ATRX',    wo:63.2, ao:33.6, bo:3.1 },
+      { g:'EPG5',    wo:86.1, ao:13.0, bo:0.9 },
+    ];
+    // mean T-cell neighbours (≤30µm) of ALT+ (pos) vs ALT- (neg) tumour cells, per sample.
+    const MUTPROX = [
+      { id:'B3',  tp:'T0', pos:0.256,  neg:0.278 },
+      { id:'C3',  tp:'T0', pos:1.982,  neg:2.114 },
+      { id:'T1',  tp:'T1', pos:0.289,  neg:0.306 },
+      { id:'T2',  tp:'T2', pos:4.869,  neg:5.189 },
+      { id:'T3a', tp:'T3', pos:11.187, neg:11.294 },
+      { id:'T3b', tp:'T3', pos:9.780,  neg:10.106 },
+    ];
+    // pseudo-VAF in tumour (cluster def) per sample, for the 6 zygosity genes —
+    // values indexed in S order [B3, C3, T1, T2, T3a, T3b]. All above the s/c gate.
+    const MUTVAFT = [
+      { g:'DYNC1H1', color:COL.green,  v:[0.90, 0.90, 0.86, 0.85, 0.94, 0.94] },
+      { g:'ZNF436',  color:COL.teal,   v:[0.93, 0.96, 0.96, 0.92, 0.89, 0.97] },
+      { g:'SLC25A12',color:COL.blue,   v:[0.25, 0.29, 0.29, 0.25, 0.31, 0.33] },
+      { g:'H1-2',    color:COL.amber,  v:[0.19, 0.26, 0.18, 0.17, 0.15, 0.17] },
+      { g:'ATRX',    color:COL.red,    v:[0.36, 0.38, 0.56, 0.34, 0.32, 0.35] },
+      { g:'EPG5',    color:COL.grey,   v:[0.04, 0.36, 0.06, 0.06, 0.04, 0.04] },
+    ];
+
+    // Horizontal dodge so the two same-timepoint samples don't overlap.
+    function dodges(tps) {
+      const cnt = {}, seen = {}, out = [];
+      tps.forEach(t => cnt[t] = (cnt[t] || 0) + 1);
+      tps.forEach(t => { const n = cnt[t], i = seen[t] || 0; seen[t] = i + 1; out.push(n > 1 ? (i - (n - 1) / 2) * 16 : 0); });
+      return out;
+    }
+    const DX = dodges(S.map(s => s.tp));
+    const meanByTp = (get) => TP.map(t => {
+      const xs = S.filter(s => s.tp === t).map(get).filter(v => v != null && !Number.isNaN(v));
+      return xs.length ? d3.mean(xs) : null;
+    });
+
+    function frame(id, w, h, m) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      el.innerHTML = '';
+      const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${w} ${h}`);
+      const g = svg.append('g').attr('transform', `translate(${m.l},${m.t})`);
+      return { svg, g, iw: w - m.l - m.r, ih: h - m.t - m.b };
+    }
+    const xscale = (iw) => d3.scalePoint().domain(TP).range([0, iw]).padding(0.5);
+    function axes(g, x, y, ih, yTicks, yfmt) {
+      g.append('g').attr('class', 'axis').attr('transform', `translate(0,${ih})`).call(d3.axisBottom(x));
+      g.append('g').attr('class', 'axis').call(d3.axisLeft(y).ticks(yTicks).tickFormat(yfmt || (d => d)));
+    }
+    // A line through per-timepoint means + a dot per sample.
+    function series(g, x, y, get, color, opts) {
+      opts = opts || {};
+      const means = meanByTp(get).map((m, i) => m == null ? null : [TP[i], m]).filter(Boolean);
+      const line = d3.line().x(d => x(d[0])).y(d => y(d[1]));
+      g.append('path').datum(means).attr('fill', 'none').attr('stroke', color)
+        .attr('stroke-width', 2).attr('stroke-dasharray', opts.dash || null).attr('d', line);
+      S.forEach((s, i) => {
+        const v = get(s);
+        if (v == null || Number.isNaN(v)) return;
+        g.append('circle').attr('cx', x(s.tp) + DX[i]).attr('cy', y(v)).attr('r', opts.r || 3.2)
+          .attr('fill', color).attr('opacity', 0.85);
+      });
+    }
+    function ylabel(g, ih, txt, dx) {
+      g.append('text').attr('class', 'ylab').attr('transform', 'rotate(-90)')
+        .attr('x', -ih / 2).attr('y', dx == null ? -30 : dx).attr('text-anchor', 'middle').text(txt);
+    }
+    // Direct labels in the right gutter: one per series at its line end, nudged
+    // apart so they don't collide, with a faint leader from the data point.
+    // items: [{name, color, y}] where y is the pixel position of the line end.
+    function directLabels(g, items, ih, xEnd, lx) {
+      const ls = items.filter(it => it.y != null && !Number.isNaN(it.y))
+        .map(it => ({ ...it, yd: it.y })).sort((a, b) => a.y - b.y);
+      const GAP = 13;
+      for (let i = 1; i < ls.length; i++)
+        if (ls[i].y < ls[i - 1].y + GAP) ls[i].y = ls[i - 1].y + GAP;
+      const over = ls[ls.length - 1].y - ih;
+      if (over > 0) ls.forEach(l => (l.y -= over));
+      if (ls.length && ls[0].y < 0) { const u = ls[0].y; ls.forEach(l => (l.y -= u)); }
+      ls.forEach(l => {
+        g.append('line').attr('x1', xEnd).attr('y1', l.yd).attr('x2', lx - 2).attr('y2', l.y)
+          .attr('stroke', l.color).attr('stroke-width', 1).attr('opacity', 0.4);
+        g.append('text').attr('x', lx).attr('y', l.y).attr('dy', '0.32em')
+          .attr('fill', l.color).style('font-size', '11px').style('font-weight', 600).text(l.name);
+      });
+    }
+
+    // Anti-collision labels for a scatter. Each label starts on the side of its
+    // dot with more room (right-half points label leftward, so they don't run off
+    // the edge), is sprung toward that side and pushed off overlapping neighbours,
+    // and its leader attaches to whichever box edge faces the dot.
+    // pts: [{x, y, name, color}] in px.
+    function scatterLabels(g, pts, iw, ih) {
+      const FS = 9.5, CW = 5.3, H = 11, OFF = 7;
+      const ls = pts.map(p => {
+        const w = p.name.length * CW + 2;
+        const side = p.x > iw * 0.6 ? -1 : 1;            // -1 = label to the left
+        const tx = side === 1 ? p.x + OFF : p.x - OFF - w; // target box-left for the spring
+        return { ...p, w, tx, lx: tx, ly: p.y - OFF };
+      });
+      const hit = (a, b) =>
+        Math.abs((a.lx + a.w / 2) - (b.lx + b.w / 2)) < (a.w + b.w) / 2 + 2 &&
+        Math.abs(a.ly - b.ly) < H + 1;
+      for (let it = 0; it < 160; it++) {
+        for (const a of ls) {
+          a.lx += (a.tx - a.lx) * 0.012;                 // weak spring to chosen side
+          a.ly += ((a.y - OFF) - a.ly) * 0.012;
+          for (const b of ls) {
+            if (a === b || !hit(a, b)) continue;
+            let dx = (a.lx + a.w / 2) - (b.lx + b.w / 2);
+            let dy = a.ly - b.ly;
+            if (!dx && !dy) { dy = a.x <= b.x ? -1 : 1; }
+            const d = Math.hypot(dx, dy) || 1;
+            a.lx += (dx / d) * 1.3; a.ly += (dy / d) * 1.3;
+            b.lx -= (dx / d) * 1.3; b.ly -= (dy / d) * 1.3;
+          }
+          a.lx = Math.max(0, Math.min(iw - a.w, a.lx));
+          a.ly = Math.max(9, Math.min(ih - 1, a.ly));
+        }
+      }
+      ls.forEach(l => {
+        const left = l.lx, right = l.lx + l.w, cy = l.ly - 3;
+        // attach the leader to the box edge nearest the dot (left, right, or straight)
+        const ex = l.x <= left ? left : (l.x >= right ? right : l.x);
+        g.append('line').attr('x1', l.x).attr('y1', l.y).attr('x2', ex).attr('y2', cy)
+          .attr('stroke', l.color).attr('stroke-width', 0.8).attr('opacity', 0.45);
+        g.append('text').attr('x', l.lx).attr('y', l.ly).attr('fill', l.color)
+          .style('font-size', FS + 'px').style('font-weight', 600).text(l.name);
+      });
+    }
+
+    function renderCoherence() {
+      const m = { t:18, r:14, b:24, l:36 }, f = frame('chart-coherence', 540, 210, m);
+      if (!f) return;
+      const x = xscale(f.iw), y = d3.scaleLinear().domain([0, 4.4]).range([f.ih, 0]);
+      axes(f.g, x, y, f.ih, 5);
+      ylabel(f.g, f.ih, 'mean coherence z', -26);
+      series(f.g, x, y, s => s.coh, COL.blue);
+    }
+    // Companion to renderCoherence: each of the 8 immune sets as its own line, so
+    // the aggregate above can be read against the spread of individual programs.
+    function renderCoherenceSets() {
+      const m = { t:18, r:104, b:24, l:36 }, f = frame('chart-coherence-sets', 540, 250, m);
+      if (!f) return;
+      const x = xscale(f.iw), y = d3.scaleLinear().domain([0, 5.6]).range([f.ih, 0]);
+      axes(f.g, x, y, f.ih, 6);
+      ylabel(f.g, f.ih, 'coherence z', -26);
+      COHSETS.forEach(p => {
+        const means = TP.map(t => {
+          const xs = S.map((s, i) => s.tp === t ? p.v[i] : null).filter(v => v != null);
+          return [t, d3.mean(xs)];
+        });
+        f.g.append('path').datum(means).attr('fill', 'none').attr('stroke', p.color)
+          .attr('stroke-width', 1.6).attr('opacity', 0.9).attr('d', d3.line().x(d => x(d[0])).y(d => y(d[1])));
+        S.forEach((s, i) => f.g.append('circle').attr('cx', x(s.tp) + DX[i]).attr('cy', y(p.v[i]))
+          .attr('r', 2.6).attr('fill', p.color).attr('opacity', 0.8));
+      });
+      const t3m = p => d3.mean(S.map((s, i) => s.tp === 'T3' ? p.v[i] : null).filter(v => v != null));
+      directLabels(f.g, COHSETS.map(p => ({ name: p.g, color: p.color, y: y(t3m(p)) })), f.ih, x('T3'), f.iw + 8);
+    }
+    // The mirror image: osteogenic/bone-matrix programs declining, with the rising
+    // immune mean (S.coh) overlaid dashed for contrast.
+    function renderOsteoCoherence() {
+      const m = { t:22, r:128, b:28, l:36 }, f = frame('chart-osteo', 620, 380, m);
+      if (!f) return;
+      const x = xscale(f.iw), y = d3.scaleLinear().domain([1, 5.6]).range([f.ih, 0]);
+      axes(f.g, x, y, f.ih, 6);
+      ylabel(f.g, f.ih, 'coherence z', -26);
+      const tpMean = get => TP.map(t => [t, d3.mean(S.filter(s => s.tp === t).map(get))]);
+      // immune mean reference (rising), dashed
+      f.g.append('path').datum(tpMean(s => s.coh)).attr('fill', 'none').attr('stroke', '#cfcfcf')
+        .attr('stroke-width', 2).attr('stroke-dasharray', '5,3').attr('d', d3.line().x(d => x(d[0])).y(d => y(d[1])));
+      // osteogenic declining lines + sample dots
+      OSTEOSETS.forEach(p => {
+        const means = TP.map(t => {
+          const xs = S.map((s, i) => s.tp === t ? p.v[i] : null).filter(v => v != null);
+          return [t, d3.mean(xs)];
+        });
+        f.g.append('path').datum(means).attr('fill', 'none').attr('stroke', p.color)
+          .attr('stroke-width', 1.8).attr('opacity', 0.9).attr('d', d3.line().x(d => x(d[0])).y(d => y(d[1])));
+        S.forEach((s, i) => f.g.append('circle').attr('cx', x(s.tp) + DX[i]).attr('cy', y(p.v[i]))
+          .attr('r', 2.8).attr('fill', p.color).attr('opacity', 0.8));
+      });
+      const t3 = p => d3.mean(S.map((s, i) => s.tp === 'T3' ? p.v[i] : null).filter(v => v != null));
+      const labels = OSTEOSETS.map(p => ({ name: p.g, color: p.color, y: y(t3(p)) }));
+      labels.push({ name: 'immune (mean)', color: '#cfcfcf', y: y(d3.mean(S.filter(s => s.tp === 'T3').map(s => s.coh))) });
+      directLabels(f.g, labels, f.ih, x('T3'), f.iw + 8);
+    }
+    // TLS search per sample: CXCL13 foci (the scaffold — grey bars, present
+    // everywhere) vs B-cell⁺ candidate TLS (red dots — sitting at ≈0). The gap is
+    // the finding: a chemokine scaffold without detectable B-cell follicles.
+    function renderTLS() {
+      const m = { t:22, r:14, b:28, l:34 }, f = frame('chart-tls', 560, 290, m);
+      if (!f) return;
+      const x = d3.scaleBand().domain(TLS.map(d => d.id)).range([0, f.iw]).padding(0.32);
+      const y = d3.scaleLinear().domain([0, 46]).range([f.ih, 0]);
+      f.g.append('g').attr('class', 'axis').attr('transform', `translate(0,${f.ih})`).call(d3.axisBottom(x));
+      f.g.append('g').attr('class', 'axis').call(d3.axisLeft(y).ticks(5));
+      ylabel(f.g, f.ih, 'count', -24);
+      TLS.forEach(d => {
+        f.g.append('rect').attr('x', x(d.id)).attr('width', x.bandwidth())
+          .attr('y', y(d.foci)).attr('height', f.ih - y(d.foci)).attr('fill', COL.grey).attr('opacity', 0.55);
+      });
+      TLS.forEach(d => f.g.append('circle').attr('cx', x(d.id) + x.bandwidth() / 2).attr('cy', y(d.cand))
+        .attr('r', 4).attr('fill', COL.red));
+      const lg = f.g.append('g').attr('transform', 'translate(0,-12)');
+      [[COL.grey, 0.55, 'rect', 'CXCL13 foci (scaffold)'], [COL.red, 1, 'dot', 'B-cell⁺ candidate TLS']]
+        .forEach((d, i) => {
+          const gx = i * 180;
+          if (d[2] === 'rect') lg.append('rect').attr('x', gx).attr('y', -8).attr('width', 11).attr('height', 11).attr('fill', d[0]).attr('opacity', d[1]);
+          else lg.append('circle').attr('cx', gx + 5).attr('cy', -2).attr('r', 4).attr('fill', d[0]);
+          lg.append('text').attr('class', 'lgd').attr('x', gx + 16).attr('y', 1).text(d[3]);
+        });
+    }
+    // CXCL13 producer share over time: stromal (tumour+CAF) hands off to CD8 by T3.
+    function renderCXProd() {
+      const m = { t:22, r:104, b:28, l:40 }, f = frame('chart-cxprod', 560, 320, m);
+      if (!f) return;
+      const x = xscale(f.iw), y = d3.scaleLinear().domain([0, 80]).range([f.ih, 0]);
+      axes(f.g, x, y, f.ih, 5, d => d + '%');
+      ylabel(f.g, f.ih, '% of CXCL13 transcripts', -28);
+      CXPROD.forEach(p => {
+        const means = TP.map(t => {
+          const xs = S.map((s, i) => s.tp === t ? p.v[i] : null).filter(v => v != null);
+          return [t, d3.mean(xs)];
+        });
+        f.g.append('path').datum(means).attr('fill', 'none').attr('stroke', p.color)
+          .attr('stroke-width', 2).attr('d', d3.line().x(d => x(d[0])).y(d => y(d[1])));
+        S.forEach((s, i) => f.g.append('circle').attr('cx', x(s.tp) + DX[i]).attr('cy', y(p.v[i]))
+          .attr('r', 3).attr('fill', p.color).attr('opacity', 0.85));
+      });
+      const t3 = p => d3.mean(S.map((s, i) => s.tp === 'T3' ? p.v[i] : null).filter(v => v != null));
+      directLabels(f.g, CXPROD.map(p => ({ name: p.g, color: p.color, y: y(t3(p)) })), f.ih, x('T3'), f.iw + 8);
+    }
+    function renderConstruct() {
+      const m = { t:24, r:118, b:30, l:46 }, f = frame('chart-construct', 580, 340, m);
+      if (!f) return;
+      const x = xscale(f.iw), y = d3.scaleLog().domain([0.05, 1000]).range([f.ih, 0]);
+      axes(f.g, x, y, f.ih, 4, d => d >= 1 ? d3.format('~s')(d) : d + '');
+      ylabel(f.g, f.ih, 'signal-to-control (log)', -34);
+      // dosing band: 7 IT doses begin after T1
+      f.g.append('rect').attr('x', x('T1')).attr('y', 0).attr('width', f.iw - x('T1')).attr('height', f.ih)
+        .attr('fill', COL.orange).attr('opacity', 0.06);
+      f.g.append('text').attr('x', (x('T1') + f.iw) / 2).attr('y', 12).attr('text-anchor', 'middle')
+        .attr('fill', COL.orange).style('font-size', '10px').style('opacity', 0.85).text('7 IT doses after T1 →');
+      // negative-control background reference line at S2C = 1
+      f.g.append('line').attr('x1', 0).attr('x2', f.iw).attr('y1', y(1)).attr('y2', y(1))
+        .attr('stroke', '#777').attr('stroke-dasharray', '3,3');
+      f.g.append('text').attr('x', 2).attr('y', y(1) - 4).attr('fill', '#999').style('font-size', '9.5px')
+        .text('neg-control background');
+      CONSTRUCT.forEach(p => {
+        const means = TP.map(t => {
+          const xs = S.map((s, i) => s.tp === t ? p.v[i] : null).filter(v => v != null);
+          return [t, d3.mean(xs)];
+        });
+        f.g.append('path').datum(means).attr('fill', 'none').attr('stroke', p.color)
+          .attr('stroke-width', 2).attr('d', d3.line().x(d => x(d[0])).y(d => y(d[1])));
+        S.forEach((s, i) => f.g.append('circle').attr('cx', x(s.tp) + DX[i]).attr('cy', y(p.v[i]))
+          .attr('r', 3.2).attr('fill', p.color).attr('opacity', 0.85));
+      });
+      const t3 = p => d3.mean(S.map((s, i) => s.tp === 'T3' ? p.v[i] : null).filter(v => v != null));
+      directLabels(f.g, CONSTRUCT.map(p => ({ name: p.g, color: p.color, y: y(t3(p)) })), f.ih, x('T3'), f.iw + 8);
+    }
+    function renderTCRcov() {
+      const m = { t:16, r:50, b:34, l:108 }, f = frame('chart-tcrcov', 560, 300, m);
+      if (!f) return;
+      const y = d3.scaleBand().domain(TCRCOV.map(d => d.m)).range([0, f.ih]).padding(0.3);
+      const x = d3.scaleLinear().domain([0, 15]).range([0, f.iw]);
+      f.g.append('g').attr('class', 'axis').call(d3.axisLeft(y).tickSize(0)).select('.domain').remove();
+      f.g.append('g').attr('class', 'axis').attr('transform', `translate(0,${f.ih})`).call(d3.axisBottom(x).ticks(5));
+      f.g.append('text').attr('x', f.iw / 2).attr('y', f.ih + 30).attr('text-anchor', 'middle')
+        .attr('fill', '#9a9a9a').style('font-size', '11px').text('confirmed TCR clones');
+      TCRCOV.forEach(d => {
+        f.g.append('rect').attr('x', 0).attr('y', y(d.m)).attr('width', x(d.conf)).attr('height', y.bandwidth())
+          .attr('fill', '#333').attr('rx', 2);
+        if (d.both) f.g.append('rect').attr('x', 0).attr('y', y(d.m)).attr('width', x(d.both)).attr('height', y.bandwidth())
+          .attr('fill', d.color).attr('rx', 2);
+        f.g.append('text').attr('x', x(d.conf) + 5).attr('y', y(d.m) + y.bandwidth() / 2).attr('dy', '0.35em')
+          .attr('fill', '#cfcfcf').style('font-size', '11px').style('font-weight', 600).text(`${d.both}/${d.conf}`);
+      });
+    }
+    function tcrTrend(id, data, ymax, ylab) {
+      const m = { t:18, r:66, b:26, l:42 }, f = frame(id, 490, 300, m);
+      if (!f) return;
+      const x = xscale(f.iw), y = d3.scaleLinear().domain([0, ymax]).range([f.ih, 0]);
+      axes(f.g, x, y, f.ih, 5);
+      ylabel(f.g, f.ih, ylab, -30);
+      data.forEach(p => {
+        const means = TP.map(t => {
+          const xs = S.map((s, i) => s.tp === t ? p.v[i] : null).filter(v => v != null);
+          return xs.length ? [t, d3.mean(xs)] : null;
+        }).filter(Boolean);
+        f.g.append('path').datum(means).attr('fill', 'none').attr('stroke', p.color)
+          .attr('stroke-width', 2).attr('d', d3.line().x(d => x(d[0])).y(d => y(d[1])));
+        S.forEach((s, i) => {
+          if (p.v[i] == null || Number.isNaN(p.v[i])) return;
+          f.g.append('circle').attr('cx', x(s.tp) + DX[i]).attr('cy', y(p.v[i]))
+            .attr('r', 2.8).attr('fill', p.color).attr('opacity', 0.85);
+        });
+      });
+      const t3 = p => { const xs = S.map((s, i) => s.tp === 'T3' ? p.v[i] : null).filter(v => v != null); return xs.length ? d3.mean(xs) : null; };
+      directLabels(f.g, data.map(p => ({ name: p.g, color: p.color, y: t3(p) == null ? null : y(t3(p)) })), f.ih, x('T3'), f.iw + 6);
+    }
+    function renderTCRtime() { tcrTrend('chart-tcrtime', TCRTIME, 95, 'clones / mm²'); }
+    function renderTCRshare() { tcrTrend('chart-tcrshare', TCRSHARE, 16, '% of tracked TCR'); }
+    function renderTCRcompCD8() { tcrTrend('chart-tcrcomp-cd8', TCRCD8, 4, '% of CD8 cells'); }
+    function renderTCRcompTreg() { tcrTrend('chart-tcrcomp-treg', TCRTREG, 4, '% of Treg cells'); }
+    function renderCD8() {
+      const m = { t:26, r:120, b:28, l:36 }, f = frame('chart-cd8', 560, 300, m);
+      if (!f) return;
+      const x = xscale(f.iw), y = d3.scaleLinear().domain([0, 100]).range([f.ih, 0]);
+      axes(f.g, x, y, f.ih, 5, d => d + '%');
+      ylabel(f.g, f.ih, '% of cells', -28);
+      series(f.g, x, y, s => s.cd8 == null ? null : s.cd8 * 100, COL.blue);
+      series(f.g, x, y, s => s.cd8int == null ? null : s.cd8int * 100, COL.teal);
+      const t3 = get => meanByTp(get)[3];
+      directLabels(f.g, [
+        { name:'CD8 % of cells', color:COL.blue, y: y(t3(s => s.cd8 == null ? null : s.cd8 * 100)) },
+        { name:'CD8 % interior', color:COL.teal, y: y(t3(s => s.cd8int == null ? null : s.cd8int * 100)) },
+      ], f.ih, x('T3'), f.iw + 8);
+    }
+    function renderTregTam() {
+      const m = { t:26, r:150, b:28, l:36 }, f = frame('chart-tregtam', 620, 300, m);
+      if (!f) return;
+      const x = xscale(f.iw);
+      const yL = d3.scaleLinear().domain([0, 35]).range([f.ih, 0]);
+      const yR = d3.scaleLinear().domain([0, 200]).range([f.ih, 0]);
+      axes(f.g, x, yL, f.ih, 5, d => d + '%');
+      f.g.append('g').attr('class', 'axis').attr('transform', `translate(${f.iw},0)`).call(d3.axisRight(yR).ticks(4));
+      ylabel(f.g, f.ih, '% cells', -28);
+      series(f.g, x, yL, s => s.treg * 100, COL.purple);
+      series(f.g, x, yL, s => s.tam == null ? null : s.tam * 100, COL.orange);
+      series(f.g, x, yR, s => s.cd8tam, COL.red, { dash:'4,3' });
+      const t3L = get => yL(meanByTp(get)[3]);
+      directLabels(f.g, [
+        { name:'Treg %', color:COL.purple, y: t3L(s => s.treg * 100) },
+        { name:'TAM %', color:COL.orange, y: t3L(s => s.tam == null ? null : s.tam * 100) },
+        { name:'CD8×TAM z', color:COL.red, y: yR(meanByTp(s => s.cd8tam)[3]) },
+      ], f.ih, x('T3'), f.iw + 34);
+    }
+    function renderCoexpr() {
+      const m = { t:24, r:140, b:28, l:40 }, f = frame('chart-coexpr', 560, 420, m);
+      if (!f) return;
+      const x = xscale(f.iw), y = d3.scaleLinear().domain([-1.5, 1.7]).range([f.ih, 0]);
+      axes(f.g, x, y, f.ih, 7);
+      ylabel(f.g, f.ih, 'co-occurrence  log2 OR');
+      // zero reference line
+      f.g.append('line').attr('x1', 0).attr('x2', f.iw).attr('y1', y(0)).attr('y2', y(0))
+        .attr('stroke', '#555').attr('stroke-dasharray', '3,3');
+      PAIRS.forEach(p => {
+        // mean line per timepoint
+        const means = TP.map((t, ti) => {
+          const xs = S.map((s, i) => s.tp === t ? p.v[i][0] : null).filter(v => v != null);
+          return [t, d3.mean(xs)];
+        });
+        f.g.append('path').datum(means).attr('fill', 'none').attr('stroke', p.color)
+          .attr('stroke-width', 2).attr('d', d3.line().x(d => x(d[0])).y(d => y(d[1])));
+        // sample dots: filled = Fisher-significant, hollow = n.s.
+        S.forEach((s, i) => {
+          const [or, sig] = p.v[i];
+          f.g.append('circle').attr('cx', x(s.tp) + DX[i]).attr('cy', y(or)).attr('r', 3.4)
+            .attr('fill', sig ? p.color : '#121212').attr('stroke', p.color).attr('stroke-width', 1.4);
+        });
+      });
+      const t3m = p => d3.mean(S.map((s, i) => s.tp === 'T3' ? p.v[i][0] : null).filter(v => v != null));
+      directLabels(f.g, PAIRS.map(p => ({ name: p.name, color: p.color, y: y(t3m(p)) })), f.ih, x('T3'), f.iw + 8);
+    }
+
+    function renderPanel() {
+      const m = { t:30, r:30, b:16, l:118 }, f = frame('chart-panel', 560, 360, m);
+      if (!f) return;
+      const GC = { immune:COL.teal, mutation:COL.blue, tumour:COL.amber, stroma:COL.orange, other:COL.grey };
+      const y = d3.scaleBand().domain(PANEL.map(d => d.s)).range([0, f.ih]).padding(0.22);
+      const x = d3.scaleLinear().domain([0, d3.max(PANEL, d => d.n)]).range([0, f.iw]);
+      f.g.append('g').attr('class', 'axis').call(d3.axisLeft(y).tickSize(0)).select('.domain').remove();
+      f.g.selectAll('rect.bar').data(PANEL).join('rect').attr('class', 'bar')
+        .attr('x', 0).attr('y', d => y(d.s)).attr('width', d => x(d.n)).attr('height', y.bandwidth())
+        .attr('fill', d => GC[d.g]).attr('rx', 2);
+      f.g.selectAll('text.val').data(PANEL).join('text').attr('class', 'val')
+        .attr('x', d => x(d.n) + 4).attr('y', d => y(d.s) + y.bandwidth() / 2).attr('dy', '0.32em')
+        .attr('fill', '#cfcfcf').style('font-size', '11px').text(d => d.n);
+      f.g.append('text').attr('class', 'ctitle').attr('x', -m.l + 2).attr('y', -14)
+        .text('428 probes — 210 immune-dedicated (49%)');
+    }
+
+    // Validation scatter: pseudo-VAF tumour vs rest, per variant, coloured by verdict.
+    function renderMutValidate() {
+      const m = { t:24, r:14, b:40, l:46 }, f = frame('chart-mut-validate', 520, 400, m);
+      if (!f) return;
+      // log spreads the dense low-VAF cluster (all values > 0); linear is truer to
+      // the absolute gaps. Toggled in-slide via #mut-validate-toggle.
+      const isLog = mutScale === 'log';
+      const DMIN = 0.005, TV = [0.01, 0.03, 0.1, 0.3, 1], FMT = d3.format('~g'), lo = isLog ? DMIN : 0;
+      const mk = () => isLog ? d3.scaleLog().domain([DMIN, 1]) : d3.scaleLinear().domain([0, 1]);
+      const x = mk().range([0, f.iw]), y = mk().range([f.ih, 0]);
+      const ax = d3.axisBottom(x), ay = d3.axisLeft(y);
+      if (isLog) { ax.tickValues(TV).tickFormat(FMT); ay.tickValues(TV).tickFormat(FMT); }
+      else { ax.ticks(5); ay.ticks(5); }
+      f.g.append('g').attr('class', 'axis').attr('transform', `translate(0,${f.ih})`).call(ax);
+      f.g.append('g').attr('class', 'axis').call(ay);
+      const sfx = isLog ? ' (log)' : '';
+      ylabel(f.g, f.ih, 'pseudo-VAF in tumour' + sfx, -34);
+      f.g.append('text').attr('class', 'ylab').attr('x', f.iw / 2).attr('y', f.ih + 32)
+        .attr('text-anchor', 'middle').text('pseudo-VAF in the rest' + sfx);
+      // diagonal = no allele specificity
+      f.g.append('line').attr('x1', x(lo)).attr('y1', y(lo)).attr('x2', x(1)).attr('y2', y(1))
+        .attr('stroke', '#555').attr('stroke-dasharray', '4,3');
+      // low-signal points (ALT probe at the noise floor) are drawn hollow + dim,
+      // so a dramatic-looking position can't be mistaken for a trustworthy call.
+      f.g.selectAll('circle.pt').data(MUTVAL).join('circle').attr('class', 'pt')
+        .attr('cx', d => x(d.vr)).attr('cy', d => y(d.vt))
+        .attr('r', d => d.loh ? 5 : 4)
+        .attr('fill', d => d.c === 'low-signal' ? 'none' : MUTCLS[d.c])
+        .attr('opacity', d => d.c === 'low-signal' ? 0.6 : 0.85)
+        .attr('stroke', d => d.loh ? '#fff' : (d.c === 'low-signal' ? MUTCLS['low-signal'] : 'none'))
+        .attr('stroke-width', d => d.c === 'low-signal' ? 1 : 1.2);
+      // Label the somatic-specific variants, plus ATRX (the high-signal on-diagonal
+      // contrast) and MAP2 (dramatic-looking but at the noise floor → low-signal).
+      const labeled = MUTVAL
+        .filter(d => d.c === 'somatic-specific' || d.g === 'ATRX' || d.g === 'MAP2')
+        .map(d => ({ name: d.g, color: MUTCLS[d.c], x: x(d.vr), y: y(d.vt) }));
+      scatterLabels(f.g, labeled, f.iw, f.ih);
+      // legend
+      const lg = f.g.append('g').attr('transform', `translate(${f.iw - 168},${f.ih - 74})`);
+      [['somatic-specific', 'somatic-specific (9)'], ['sample-variable', 'sample-variable (11)'],
+       ['not-specific', 'not allele-specific (3)'], ['low-signal', 'low-signal (10)']].forEach((d, i) => {
+        const ls = d[0] === 'low-signal';
+        lg.append('circle').attr('cx', 0).attr('cy', i * 16).attr('r', 4)
+          .attr('fill', ls ? 'none' : MUTCLS[d[0]]).attr('stroke', ls ? MUTCLS['low-signal'] : 'none');
+        lg.append('text').attr('class', 'lgd').attr('x', 9).attr('y', i * 16 + 4).text(d[1]);
+      });
+    }
+    // Zygosity stacked bars: WT-only / ALT-only / both among expressing cells.
+    function renderMutZygosity() {
+      const m = { t:24, r:16, b:24, l:74 }, f = frame('chart-mut-zygosity', 520, 360, m);
+      if (!f) return;
+      const y = d3.scaleBand().domain(MUTZYG.map(d => d.g)).range([0, f.ih]).padding(0.28);
+      const x = d3.scaleLinear().domain([0, 100]).range([0, f.iw]);
+      f.g.append('g').attr('class', 'axis').call(d3.axisLeft(y).tickSize(0)).select('.domain').remove();
+      const segs = [['wo', COL.blue, 'WT-only'], ['ao', COL.green, 'ALT-only'], ['bo', '#e6e6e6', 'both']];
+      MUTZYG.forEach(d => {
+        let acc = 0;
+        segs.forEach(([k, col]) => {
+          const w = x(d[k]);
+          f.g.append('rect').attr('x', x(acc)).attr('y', y(d.g)).attr('width', w).attr('height', y.bandwidth())
+            .attr('fill', col).attr('opacity', 0.9);
+          if (d[k] >= 12) f.g.append('text').attr('x', x(acc) + w / 2).attr('y', y(d.g) + y.bandwidth() / 2)
+            .attr('dy', '0.32em').attr('text-anchor', 'middle').attr('fill', '#101010')
+            .style('font-size', '10px').style('font-weight', 700).text(Math.round(d[k]) + '%');
+          acc += d[k];
+        });
+      });
+      const lg = f.g.append('g').attr('transform', `translate(0,${-12})`);
+      segs.forEach(([, col, name], i) => {
+        const gx = i * 120;
+        lg.append('rect').attr('x', gx).attr('y', -8).attr('width', 11).attr('height', 11).attr('fill', col);
+        lg.append('text').attr('class', 'lgd').attr('x', gx + 16).attr('y', 1).text(name);
+      });
+    }
+    // T-cell proximity: mean T-neighbours of ALT+ vs ALT- tumour cells (lines overlap).
+    function renderMutProx() {
+      const m = { t:26, r:96, b:28, l:42 }, f = frame('chart-mut-prox', 540, 360, m);
+      if (!f) return;
+      const x = xscale(f.iw), y = d3.scaleLinear().domain([0, 12]).range([f.ih, 0]);
+      axes(f.g, x, y, f.ih, 6);
+      ylabel(f.g, f.ih, 'mean T-cell neighbours (≤30µm)', -32);
+      const DXm = dodges(MUTPROX.map(s => s.tp));
+      const meanTp = (k) => TP.map(t => {
+        const xs = MUTPROX.filter(s => s.tp === t).map(s => s[k]);
+        return xs.length ? [t, d3.mean(xs)] : null;
+      }).filter(Boolean);
+      [['neg', COL.grey, 'ALT⁻ tumour cells'], ['pos', COL.green, 'ALT⁺ tumour cells']].forEach(([k, col]) => {
+        f.g.append('path').datum(meanTp(k)).attr('fill', 'none').attr('stroke', col).attr('stroke-width', 2)
+          .attr('d', d3.line().x(d => x(d[0])).y(d => y(d[1])));
+        MUTPROX.forEach((s, i) => f.g.append('circle').attr('cx', x(s.tp) + DXm[i]).attr('cy', y(s[k]))
+          .attr('r', 3.2).attr('fill', col).attr('opacity', 0.85));
+      });
+      const t3 = k => y(d3.mean(MUTPROX.filter(s => s.tp === 'T3').map(s => s[k])));
+      directLabels(f.g, [
+        { name:'ALT⁺ cells', color:COL.green, y: t3('pos') },
+        { name:'ALT⁻ cells', color:COL.grey, y: t3('neg') },
+      ], f.ih, x('T3'), f.iw + 8);
+    }
+    // Tumour pseudo-VAF of the zygosity genes over time — flat lines = stable/truncal.
+    function renderMutVafTrend() {
+      const m = { t:24, r:96, b:28, l:42 }, f = frame('chart-mut-vaft', 560, 420, m);
+      if (!f) return;
+      const x = xscale(f.iw), y = d3.scaleLinear().domain([0, 1]).range([f.ih, 0]);
+      axes(f.g, x, y, f.ih, 6);
+      ylabel(f.g, f.ih, 'pseudo-VAF in tumour');
+      MUTVAFT.forEach(p => {
+        const means = TP.map(t => {
+          const xs = S.map((s, i) => s.tp === t ? p.v[i] : null).filter(v => v != null);
+          return [t, d3.mean(xs)];
+        });
+        f.g.append('path').datum(means).attr('fill', 'none').attr('stroke', p.color).attr('stroke-width', 2)
+          .attr('d', d3.line().x(d => x(d[0])).y(d => y(d[1])));
+        S.forEach((s, i) => f.g.append('circle').attr('cx', x(s.tp) + DX[i]).attr('cy', y(p.v[i]))
+          .attr('r', 3.2).attr('fill', p.color).attr('opacity', 0.85));
+      });
+      const t3m = p => d3.mean(S.map((s, i) => s.tp === 'T3' ? p.v[i] : null).filter(v => v != null));
+      directLabels(f.g, MUTVAFT.map(p => ({ name: p.g, color: p.color, y: y(t3m(p)) })), f.ih, x('T3'), f.iw + 8);
+    }
+
+    function renderAll() {
+      if (!window.d3) return;
+      renderCoherence(); renderCoherenceSets(); renderOsteoCoherence(); renderTLS(); renderCXProd(); renderConstruct();
+      renderTCRcov(); renderTCRtime(); renderTCRshare(); renderTCRcompCD8(); renderTCRcompTreg();
+      renderCD8(); renderTregTam(); renderCoexpr(); renderPanel();
+      renderMutValidate(); renderMutZygosity(); renderMutVafTrend(); renderMutProx();
+    }
+    // Wire the in-slide log/linear toggle for the validation scatter.
+    const vtog = document.getElementById('mut-validate-toggle');
+    if (vtog) vtog.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      if (b.classList.contains('on')) return;
+      vtog.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      mutScale = b.dataset.scale;
+      renderMutValidate();
+    }));
+
+    if (window.Reveal && Reveal.on) Reveal.on('ready', renderAll);
+    renderAll();
+  })();
+  </script>
+</body>
+</html>

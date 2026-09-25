@@ -23,7 +23,7 @@
       "role": "existing_T0_T1_rearrangement_context",
       "status": "source_page_reviewed_snapshot_pending",
       "source_url": "https://osteosarc.com/fusions/pard3b--cdkn2b-as1-cdkn2b/",
-      "local_path": "data/derived/candidate_evidence.json",
+      "local_path": "data/curated/candidate-evidence.json",
       "sha256": null,
       "candidate_label": "PARD3B–CDKN2B-AS1/CDKN2B",
       "selection_status": "provisional_until_coverage_check",
@@ -89,7 +89,7 @@
       "status": "content_retrieved_during_planning",
       "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/resolute.bio/README.md",
       "s3_key": "vendor/resolute.bio/README.md",
-      "local_path": "data/source/resolute_README.md",
+      "local_path": "references/data-dictionaries/resolute-spatial-proteomics.md",
       "sha256": null,
       "notes": "Re-fetch and hash at execution. Describes identifiers, geometry and QC semantics; does not by itself establish all abundance normalization details."
     },
@@ -101,7 +101,7 @@
       "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/resolute.bio/T0_B1_pg_matrix.tsv",
       "s3_key": "vendor/resolute.bio/T0_B1_pg_matrix.tsv",
       "catalog_size": "10.3 MB",
-      "local_path": "data/source/T0_B1_pg_matrix.tsv",
+      "local_path": "data/inputs/T0_B1_pg_matrix.tsv",
       "sha256": null,
       "schema_from_readme": {
         "identifier_columns": [
@@ -130,7 +130,7 @@
       "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/resolute.bio/T0_B1_metadata.tsv",
       "s3_key": "vendor/resolute.bio/T0_B1_metadata.tsv",
       "catalog_size": "38.2 KB",
-      "local_path": "data/source/T0_B1_metadata.tsv",
+      "local_path": "data/inputs/T0_B1_metadata.tsv",
       "sha256": null,
       "schema_from_readme": {
         "columns": [

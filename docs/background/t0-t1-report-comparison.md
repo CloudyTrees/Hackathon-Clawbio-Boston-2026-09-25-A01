@@ -1,6 +1,6 @@
 # T0 to T1: comparison of existing molecular reports
 
-Reviewed September 25, 2026. This compares the [T0 summary](t0-existing-reports-summary.md) with the [T1 summary](t1-existing-reports-summary.md). Only existing reports were summarized; no primary-data analysis was performed. Dates describe specimens, not report-generation dates. T1 organoid findings are excluded.
+Reviewed September 25, 2026. This compares the [T0 summary](t0-report-summary.md) with the [T1 summary](t1-report-summary.md). Only existing reports were summarized; no primary-data analysis was performed. Dates describe specimens, not report-generation dates. T1 organoid findings are excluded.
 
 **The main reported changes are higher mutation burden, lower estimated tumor purity, and additional RNA support for alterations already present at T0. The summaries do not establish newly acquired primary drivers** (ChatGPT 2026; Osteosarc n.d.-a, n.d.-b, n.d.-d).
 
@@ -48,7 +48,7 @@ Both timepoints show fewer T-cell–malignant-cell neighbors than expected. T1 a
 
 ## Works Cited
 
-ChatGPT. 2026. “T0: Existing Molecular-Report Summary.” September 25. Project working document. [t0-existing-reports-summary.md](t0-existing-reports-summary.md).
+ChatGPT. 2026. “T0: Existing Molecular-Report Summary.” September 25. Project working document. [t0-report-summary.md](t0-report-summary.md).
 
 Osteosarc (Sid Sijbrandij's Osteosarcoma Data). n.d.-a. “DRAGEN vs oncoanalyser.” Accessed September 25, 2026. https://osteosarc.com/oncoanalyser/comparison/.
 
@@ -57,4 +57,3 @@ Osteosarc. n.d.-b. “HMF ORANGE Report v4.1.2: IPISRC044_tumor_T1_ucla.” Pipe
 Osteosarc. n.d.-c. “Osteosarcoma Xenium — Analysis & Interpretation.” Accessed September 25, 2026. https://osteosarc.com/xenium/analysis/.
 
 Osteosarc. n.d.-d. “PARD3B :: CDKN2B-AS1/CDKN2B — Fusion Evidence.” Accessed September 25, 2026. https://osteosarc.com/fusions/pard3b--cdkn2b-as1-cdkn2b/.
-

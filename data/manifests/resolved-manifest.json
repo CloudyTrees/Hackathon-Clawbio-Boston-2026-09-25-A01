@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0",
+  "project": "fusion-partner-context",
+  "resolved_at": "2026-09-25",
+  "status": "localized_schema_inspection_pending",
+  "source_manifest": "data/manifests/input-manifest.json",
+  "selection": {
+    "rna_route": "analyzed_h5ad",
+    "reason": "R is installed but Seurat is not; the manifest directs use of the alternative h5ad route in that case.",
+    "excluded_route": "t1_seurat",
+    "excluded_route_downloaded": false
+  },
+  "inputs": [
+    {
+      "id": "candidate_evidence",
+      "source_url": "https://osteosarc.com/fusions/pard3b--cdkn2b-as1-cdkn2b/",
+      "local_path": "data/curated/candidate-evidence.json",
+      "source_snapshot_path": "references/web-snapshots/pard3b-cdkn2b-fusion-evidence.html",
+      "bytes": 4887,
+      "sha256": "d7445dfe6bc1bcd94aeac8ac20ae1381331cd94396fa0954864791233039e3ae",
+      "source_snapshot_bytes": 716711,
+      "source_snapshot_sha256": "9944397e3ed1781eaa32636b6146ef69c8296c2ac27db10167f23abc317cbbf5",
+      "status": "localized_and_curated"
+    },
+    {
+      "id": "scrna_expression_and_annotations",
+      "selected_route": "analyzed_h5ad",
+      "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/tumor/analysis/run2/tumor_run2_analyzed.h5ad",
+      "local_path": "data/inputs/tumor_run2_analyzed.h5ad",
+      "bytes": 1584164994,
+      "sha256": "9ac4f1c24bd2ea4ce194cb8cc069b7bbbdc8169dc416e668e25be8168507d62e",
+      "status": "localized_hdf5_signature_verified_schema_unverified",
+      "pending_resolutions": [
+        "T1 sample mapping",
+        "cell annotation fields",
+        "feature identifiers",
+        "expression layer semantics"
+      ]
+    },
+    {
+      "id": "spatial_data_dictionary",
+      "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/resolute.bio/README.md",
+      "local_path": "references/data-dictionaries/resolute-spatial-proteomics.md",
+      "bytes": 3294,
+      "sha256": "61526a655cd11e52fc88929b7fe21147708dc500ff44a61f19ef01747e4de038",
+      "status": "localized"
+    },
+    {
+      "id": "protein_groups",
+      "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/resolute.bio/T0_B1_pg_matrix.tsv",
+      "local_path": "data/inputs/T0_B1_pg_matrix.tsv",
+      "bytes": 10322756,
+      "sha256": "f825d999bbe5cce3a5a4c9acda7283718b47b3bc162eac2b6d3b51975c677d77",
+      "observed_feature_rows": 7979,
+      "observed_region_columns": 247,
+      "identifier_columns": 4,
+      "status": "localized_shape_verified_scale_and_missingness_unresolved"
+    },
+    {
+      "id": "region_metadata",
+      "source_url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/resolute.bio/T0_B1_metadata.tsv",
+      "local_path": "data/inputs/T0_B1_metadata.tsv",
+      "bytes": 38200,
+      "sha256": "632d8dbcf19f9e6d271707c35a47ba84611f12b7785a2f1efce7408075a9edb8",
+      "observed_rows": 247,
+      "observed_filter_stage_counts": {
+        "analyzed": 232,
+        "excluded_low_depth": 15
+      },
+      "status": "localized_shape_and_qc_counts_verified"
+    }
+  ]
+}
