@@ -1,0 +1,169 @@
+{
+  "schema_version": "1.0",
+  "project": "fusion-partner-context",
+  "created_at": "2026-09-25",
+  "status": "planning_manifest_not_download_verified",
+  "scope": {
+    "candidate_count": 1,
+    "maximum_candidate_count": 2,
+    "rna_timepoint": "T1",
+    "protein_timepoint": "T0",
+    "protein_block": "B1"
+  },
+  "acquisition_policy": {
+    "rna_routes_to_download": 1,
+    "download_entire_prefixes": false,
+    "resolve_and_hash_before_analysis": true,
+    "notes": "Only necessary input roles are listed. RNA routes are alternatives, not additive requirements. Do not download raw sequencing, precursor matrices, slide images or other timepoints for this MVP."
+  },
+  "inputs": [
+    {
+      "id": "candidate_evidence",
+      "required": true,
+      "role": "existing_T0_T1_rearrangement_context",
+      "status": "source_page_reviewed_snapshot_pending",
+      "source_url": "https://osteosarc.com/fusions/pard3b--cdkn2b-as1-cdkn2b/",
+      "local_path": "data/derived/candidate_evidence.json",
+      "sha256": null,
+      "candidate_label": "PARD3B–CDKN2B-AS1/CDKN2B",
+      "selection_status": "provisional_until_coverage_check",
+      "fields_to_capture": [
+        "candidate_id",
+        "original_label",
+        "timepoint",
+        "assay",
+        "sample_or_library_id",
+        "reported_support",
+        "source_url",
+        "access_date"
+      ],
+      "notes": "Curate relevant rows only; preserve ambiguity and distinguish DNA/RNA. Replace source if a different reported pair is selected; do not add unrelated reports."
+    },
+    {
+      "id": "scrna_expression_and_annotations",
+      "required": true,
+      "role": "T1_partner_expression_by_cell_group",
+      "status": "catalog_locations_known_schema_unverified",
+      "selected_route": null,
+      "local_path": null,
+      "sha256": null,
+      "required_logical_fields": [
+        "cell_id",
+        "gene_id_or_symbol",
+        "expression_values",
+        "documented_expression_scale",
+        "cell_type_or_cluster",
+        "verified_T1_sample_provenance"
+      ],
+      "routes": [
+        {
+          "id": "t1_seurat",
+          "format": "RDS_Seurat",
+          "s3_key": "ucsf/T1/seurat_objects/IPISRC044_T1_scrna_live_processed_annot_101824.rds",
+          "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/ucsf/T1/seurat_objects/IPISRC044_T1_scrna_live_processed_annot_101824.rds",
+          "catalog_size": "969 MB",
+          "source_page": "https://osteosarc.com/data/",
+          "selection_rule": "Prefer when R and Seurat are already available. Inspect actual assays/layers and annotations; export a compact T1 subset for the Python adapter."
+        },
+        {
+          "id": "analyzed_h5ad",
+          "format": "h5ad",
+          "s3_key": "kamil/tumor/analysis/run2/tumor_run2_analyzed.h5ad",
+          "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/kamil/tumor/analysis/run2/tumor_run2_analyzed.h5ad",
+          "catalog_size": "1.6 GB",
+          "source_page": "https://osteosarc.com/data/",
+          "selection_rule": "Alternative only. Require validated T1 sample mapping and usable supplied cell annotations. Filename does not establish these. Retain T1 cells only."
+        }
+      ],
+      "filters": {
+        "timepoint": "T1",
+        "feature_subset": "selected partner genes after retaining full-library normalization information",
+        "cells": "all retained T1 cells, including zero-expression cells"
+      },
+      "notes": "Feature IDs, annotations and expression may coexist in one object; no separate redundant metadata download is required. If a route lacks necessary labels or semantics, it does not satisfy this role. Preserve provenance for any compact export."
+    },
+    {
+      "id": "spatial_data_dictionary",
+      "required": true,
+      "role": "protein_and_region_schema",
+      "status": "content_retrieved_during_planning",
+      "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/resolute.bio/README.md",
+      "s3_key": "vendor/resolute.bio/README.md",
+      "local_path": "data/source/resolute_README.md",
+      "sha256": null,
+      "notes": "Re-fetch and hash at execution. Describes identifiers, geometry and QC semantics; does not by itself establish all abundance normalization details."
+    },
+    {
+      "id": "protein_groups",
+      "required": true,
+      "role": "T0_region_protein_abundance_and_gene_mapping",
+      "status": "exact_object_listed_content_not_inspected",
+      "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/resolute.bio/T0_B1_pg_matrix.tsv",
+      "s3_key": "vendor/resolute.bio/T0_B1_pg_matrix.tsv",
+      "catalog_size": "10.3 MB",
+      "local_path": "data/source/T0_B1_pg_matrix.tsv",
+      "sha256": null,
+      "schema_from_readme": {
+        "identifier_columns": [
+          "Protein.Group",
+          "Protein.Ids",
+          "Protein.Names",
+          "Genes"
+        ],
+        "value_columns": "region sample_id values",
+        "expected_feature_rows": 7979,
+        "expected_region_columns": 247
+      },
+      "abundance_scale": null,
+      "missing_value_encoding": null,
+      "filters": {
+        "features": "protein groups matching selected partner gene tokens",
+        "regions": "join region_metadata and retain filter_stage == analyzed"
+      },
+      "notes": "Preserve ambiguous groups; do not duplicate/sum their abundance as gene-specific values. Establish scale and missing-value encoding before transforming."
+    },
+    {
+      "id": "region_metadata",
+      "required": true,
+      "role": "T0_region_identity_QC_and_spatial_geometry",
+      "status": "exact_object_listed_content_not_inspected",
+      "url": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/resolute.bio/T0_B1_metadata.tsv",
+      "s3_key": "vendor/resolute.bio/T0_B1_metadata.tsv",
+      "catalog_size": "38.2 KB",
+      "local_path": "data/source/T0_B1_metadata.tsv",
+      "sha256": null,
+      "schema_from_readme": {
+        "columns": [
+          "sample_id",
+          "segmented_tissue_id",
+          "geometry",
+          "proteins_identified",
+          "precursors_identified",
+          "filter_stage"
+        ],
+        "join_key": "sample_id",
+        "geometry": "WKT polygons in level-0 image pixel coordinates",
+        "pixel_size_um": 0.274,
+        "expected_measured_regions": 247,
+        "expected_qc_pass_regions": 232
+      },
+      "filters": {
+        "filter_stage": "analyzed"
+      },
+      "notes": "Coordinates suffice for a region map without downloading a slide image. Keep counts of excluded_low_depth regions; tissue IDs are labels, not cell types."
+    }
+  ],
+  "execution_required_resolutions": [
+    "selected RNA route and actual metadata fields",
+    "T1 inclusion rule and expression layer semantics",
+    "candidate partner coverage and mapping ambiguity",
+    "protein numerical scale and missing-value encoding",
+    "downloaded input sizes and SHA-256 checksums",
+    "region join and geometry validity"
+  ],
+  "sources": {
+    "catalog": "https://osteosarc.com/data/",
+    "spatial_dictionary": "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/resolute.bio/README.md",
+    "catalog_observed_date": "2026-09-25"
+  }
+}
